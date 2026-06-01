@@ -1,0 +1,111 @@
+import type { AppProfile, CompanyResponse, Review, SimilarApp } from "../types/loanAppProfile";
+
+export const appProfile: AppProfile = {
+  id: "swift-cash",
+  name: "SwiftCash Loan",
+  logoUrl: "https://dummyimage.com/96x96/1f2937/ffffff.png&text=SC",
+  developerName: "Swift Fintech Solutions Pvt. Ltd.",
+  companyName: "Swift Fintech Solutions Pvt. Ltd.",
+  website: "https://example-loanapp.in",
+  playStoreUrl: "https://play.google.com/store/apps/details?id=example.swiftcash",
+  appStoreUrl: "https://apps.apple.com/in/app/example-swiftcash/id1234567890",
+  claimedNbfcPartner: "Example Capital Finance Ltd.",
+  rbiRegistrationClaim: "Claimed by app as RBI-registered NBFC partner (user verification advised).",
+  grievanceOfficer: {
+    name: "Nodal Grievance Officer",
+    email: "grievance@example-loanapp.in",
+    phone: "+91-00000-00000",
+    address: "Corporate Office, Bengaluru, Karnataka",
+  },
+  support: {
+    email: "support@example-loanapp.in",
+    phone: "+91-00000-00001",
+  },
+  status: "under_review",
+  riskLevel: "high",
+  trustScore: 32,
+  reviewCount: 1284,
+  averageRating: 1.8,
+  summaryLine:
+    "Users reported hidden fees and aggressive recovery communication patterns. Based on user-submitted reviews and public details.",
+  lastUpdated: "2026-05-28",
+  scoreBreakdown: [
+    { key: "overall", label: "Overall Score", score: 32, explanation: "Based on user-submitted reviews and available disclosures." },
+    { key: "harassment", label: "Harassment Complaints", score: 18, explanation: "Pattern of complaints alleged by reviewers." },
+    { key: "hidden_charges", label: "Hidden Charges", score: 26, explanation: "Users reported unclear fee disclosure in some cases." },
+    { key: "data_privacy", label: "Data Privacy Concerns", score: 24, explanation: "Unverified claims mention contact access misuse." },
+    { key: "recovery_behaviour", label: "Recovery Agent Behaviour", score: 20, explanation: "Reviewers alleged threatening communication." },
+    { key: "transparency", label: "Transparency", score: 41, explanation: "Some policy details are present but may require clearer terms." },
+    { key: "customer_support", label: "Customer Support", score: 36, explanation: "Mixed response quality according to user-submitted reviews." },
+    { key: "legal_grievance", label: "Legal / Grievance Response", score: 30, explanation: "Users reported delays in grievance escalation outcomes." },
+  ],
+};
+
+export const reviews: Review[] = [
+  {
+    id: "r1",
+    reviewerName: "Rahul S.",
+    isVerifiedBorrower: true,
+    rating: 1,
+    title: "Charges were not clear during onboarding",
+    body: "I saw extra charges after repayment. Support replied, but explanation was not fully clear.",
+    tags: ["Hidden Charges", "Good Support"],
+    createdAt: "2026-05-17",
+    helpfulCount: 44,
+  },
+  {
+    id: "r2",
+    reviewerName: "Ananya K.",
+    isVerifiedBorrower: false,
+    rating: 1,
+    title: "Frequent call pressure reported",
+    body: "I received repeated calls after a delay. Sharing this as an alleged experience for awareness.",
+    tags: ["Threat Calls", "Harassment"],
+    createdAt: "2026-05-10",
+    helpfulCount: 31,
+  },
+  {
+    id: "r3",
+    reviewerName: "Manoj P.",
+    isVerifiedBorrower: true,
+    rating: 3,
+    title: "Fast disbursement but policy terms need clarity",
+    body: "Disbursement was timely. However, repayment schedule and penalties should be more transparent.",
+    tags: ["Timely Disbursement", "Hidden Charges"],
+    createdAt: "2026-04-29",
+    helpfulCount: 19,
+  },
+];
+
+export const companyResponse: CompanyResponse = {
+  body: "We are reviewing user-submitted concerns and strengthening grievance handling timelines. Users may contact our support and grievance officer for assistance.",
+  responseDate: "2026-05-20",
+  verificationStatus: "pending_verification",
+};
+
+export const similarApps: SimilarApp[] = [
+  {
+    id: "flash-funds",
+    name: "FlashFunds",
+    logoUrl: "https://dummyimage.com/64x64/111827/ffffff.png&text=FF",
+    trustScore: 45,
+    riskLevel: "medium",
+    reviewCount: 612,
+  },
+  {
+    id: "quick-rupee",
+    name: "QuickRupee",
+    logoUrl: "https://dummyimage.com/64x64/0f172a/ffffff.png&text=QR",
+    trustScore: 27,
+    riskLevel: "high",
+    reviewCount: 2089,
+  },
+  {
+    id: "easy-credit-now",
+    name: "EasyCredit Now",
+    logoUrl: "https://dummyimage.com/64x64/1e293b/ffffff.png&text=EC",
+    trustScore: 61,
+    riskLevel: "low",
+    reviewCount: 486,
+  },
+];

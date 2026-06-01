@@ -1,0 +1,66 @@
+import type { CorrectionDisputeRequestData } from "@/types/correctionDisputeRequest";
+
+export const correctionDisputeRequest: CorrectionDisputeRequestData = {
+  requestType: "",
+  selectedPublicItem: {
+    id: "swift-cash",
+    type: "loan_app_profile",
+    title: "SwiftCash Loan Profile",
+    publicUrl: "/loan-apps/swift-cash",
+    currentStatus: "published",
+  },
+  correction: {
+    currentDisplayedValue: "",
+    proposedCorrectedValue: "",
+    explanation: "",
+    sourceUrl: "",
+    urgency: "normal",
+    isOwnContent: false,
+    isCompanyProfile: false,
+    temporaryHideRequested: false,
+  },
+  privacyViolation: {
+    issueTypes: [],
+    locationDescription: "",
+    whoseInformation: "",
+    removalReason: "",
+    publicUrl: "",
+  },
+  reviewDispute: {
+    reviewId: "",
+    reviewUrl: "",
+    disputeReason: "",
+    explanation: "",
+    requestedAction: "",
+    supportingProof: [],
+  },
+  duplicateRelationship: {
+    existingProfileUrl: "",
+    duplicateProfileUrl: "",
+    relationshipIssue: "",
+    explanation: "",
+    suggestedAction: "",
+    sourceUrl: "",
+  },
+  requester: {
+    name: "",
+    email: "",
+    phone: "",
+    role: "user",
+    organizationName: "",
+    authorizedRepresentative: false,
+  },
+  evidence: {
+    files: [],
+    evidencePrivate: true,
+  },
+  confirmations: {
+    goodFaith: false,
+    accurateToKnowledge: false,
+    reviewAndVerificationAccepted: false,
+    disagreementDoesNotGuaranteeRemoval: false,
+    noUnnecessarySensitiveData: false,
+    representativeAuthorized: false,
+  },
+  status: "draft",
+};

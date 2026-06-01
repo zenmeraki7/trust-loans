@@ -1,0 +1,436 @@
+"use client";
+
+import { useState } from "react";
+import type {
+  AdminLoanAppDatabase,
+  ClaimStatus,
+  VerificationStatus,
+} from "@/types/adminLoanAppDatabase";
+import type { RiskLevel } from "@/types/loanAppProfile";
+import { useMemo } from "react";
+import GlobalFilterPanel from "@/components/filters/GlobalFilterPanel";
+import { adminAppDbFilterSchema } from "@/config/filterSchemas";
+import { applyGlobalFilters } from "@/lib/filterEngine";
+
+export function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
+  const tone: Record<RiskLevel, string> = {
+    low: "bg-emerald-100 text-emerald-700",
+    medium: "bg-amber-100 text-amber-700",
+    high: "bg-orange-100 text-orange-700",
+    severe: "bg-rose-100 text-rose-700",
+  };
+  const label = riskLevel === "severe" ? "Severe Complaints" : `${riskLevel[0].toUpperCase()}${riskLevel.slice(1)}`;
+  return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${tone[riskLevel]}`}>{label}</span>;
+}
+
+export function VerificationStatusBadge({ status }: { status: VerificationStatus }) {
+  const cls =
+    status === "verified"
+      ? "bg-emerald-100 text-emerald-700"
+      : status === "partially_verified"
+      ? "bg-amber-100 text-amber-700"
+      : status === "conflicting_information"
+      ? "bg-rose-100 text-rose-700"
+      : "bg-slate-100 text-slate-700";
+  return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${cls}`}>{status.replaceAll("_", " ")}</span>;
+}
+
+export function ClaimStatusBadge({ status }: { status: ClaimStatus }) {
+  const cls =
+    status === "claimed"
+      ? "bg-emerald-100 text-emerald-700"
+      : status === "claim_pending"
+      ? "bg-amber-100 text-amber-700"
+      : status === "disputed_claim"
+      ? "bg-rose-100 text-rose-700"
+      : "bg-slate-100 text-slate-700";
+  return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${cls}`}>{status.replaceAll("_", " ")}</span>;
+}
+
+export function AdminAppsHeader({ stats }: { stats: AdminLoanAppDatabase["stats"] }) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h1 className="text-2xl font-semibold text-slate-900">Loan App Database</h1>
+      <p className="mt-1 text-sm text-slate-600">
+        Manage app profiles, company records, claimed NBFC links, public details, aliases, and verification status.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Add New App</button>
+        <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Import Apps</button>
+        <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Export Database</button>
+        <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Review Duplicate Records</button>
+      </div>
+      <AdminAppStatsCards stats={stats} />
+    </section>
+  );
+}
+
+export function AdminAppStatsCards({ stats }: { stats: AdminLoanAppDatabase["stats"] }) {
+  const items = [
+    ["Total apps listed", stats.totalApps],
+    ["Apps under review", stats.underReview],
+    ["Verified public details", stats.verifiedPublicDetails],
+    ["Claimed profiles", stats.claimedProfiles],
+    ["Duplicate candidates", stats.duplicateCandidates],
+    ["Missing grievance details", stats.missingGrievanceDetails],
+    ["Missing company details", stats.missingCompanyDetails],
+    ["High-risk complaint patterns", stats.highRiskComplaintPatterns],
+  ];
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
+      {items.map(([k, v]) => (
+        <div key={k} className="rounded-xl bg-slate-50 p-3">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">{k}</p>
+          <p className="text-xl font-semibold text-slate-900">{v}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AdminAppSearchFilters() {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-3 xl:grid-cols-5">
+        {[
+          "Search: app, developer, company, NBFC, URL, package, app ID, alias",
+          "Status",
+          "Verification status",
+          "Claim status",
+          "Risk level",
+          "Missing NBFC Partner",
+          "Missing Company Name",
+          "Missing Grievance Officer",
+          "Missing Website",
+          "Missing App Store Link",
+          "Missing Registered Address",
+        ].map((x) => (
+          <input key={x} className="rounded-lg border border-slate-300 px-3 py-2 text-xs" placeholder={x} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function AdminAppRecordsTable({
+  apps,
+  onSelect,
+}: {
+  apps: AdminLoanAppDatabase["apps"];
+  onSelect: (id: string) => void;
+}) {
+  if (apps.length === 0) return <EmptyState />;
+  return (
+    <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <table className="min-w-[1200px] text-left text-xs">
+        <thead>
+          <tr className="border-b border-slate-200 text-slate-500">
+            {["App", "Package", "Developer", "Company", "Claimed NBFC partner", "Trust score", "Risk", "Reviews", "Verification", "Claim", "Last updated", "Actions"].map((h) => (
+              <th key={h} className="py-2 pr-3">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {apps.map((a) => (
+            <tr key={a.id} className="border-b border-slate-100">
+              <td className="py-2 pr-3">
+                <div className="flex items-center gap-2">
+                  <img src={a.logoUrl} alt={a.name} className="h-8 w-8 rounded border border-slate-200" />
+                  <span className="font-medium text-slate-900">{a.name}</span>
+                </div>
+              </td>
+              <td className="py-2 pr-3">{a.packageName}</td>
+              <td className="py-2 pr-3">{a.developerName}</td>
+              <td className="py-2 pr-3">{a.companyName}</td>
+              <td className="py-2 pr-3">{a.claimedNbfcPartner}</td>
+              <td className="py-2 pr-3">{a.trustScore}</td>
+              <td className="py-2 pr-3"><RiskBadge riskLevel={a.riskLevel} /></td>
+              <td className="py-2 pr-3">{a.reviewCount}</td>
+              <td className="py-2 pr-3"><VerificationStatusBadge status={a.verificationStatus} /></td>
+              <td className="py-2 pr-3"><ClaimStatusBadge status={a.claimStatus} /></td>
+              <td className="py-2 pr-3">{a.lastUpdated}</td>
+              <td className="py-2 pr-3">
+                <div className="flex gap-1">
+                  <button onClick={() => onSelect(a.id)} className="rounded border border-slate-300 px-2 py-1">View</button>
+                  <button className="rounded border border-slate-300 px-2 py-1">Edit</button>
+                  <button className="rounded border border-slate-300 px-2 py-1">Verify</button>
+                  <button className="rounded border border-slate-300 px-2 py-1">Merge</button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function BaseInput({ placeholder, value }: { placeholder: string; value?: string }) {
+  return <input defaultValue={value} placeholder={placeholder} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />;
+}
+
+export function BasicAppIdentityForm({ data }: { data: AdminLoanAppDatabase["selectedApp"]["basicIdentity"] }) {
+  return (
+    <section className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900">Basic app identity</h3>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <BaseInput placeholder="App name" value={data.name} />
+        <BaseInput placeholder="App slug" value={data.slug} />
+        <BaseInput placeholder="App logo URL" value={data.logoUrl} />
+        <BaseInput placeholder="Package name" value={data.packageName} />
+        <BaseInput placeholder="Platform" value={data.platform.join(", ")} />
+        <BaseInput placeholder="Public profile status" value={data.profileStatus} />
+      </div>
+      <textarea defaultValue={data.shortDescription} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" rows={3} />
+    </section>
+  );
+}
+
+export function CompanyDetailsForm({ data }: { data: AdminLoanAppDatabase["selectedApp"]["companyDetails"] }) {
+  return (
+    <section className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900">Developer / company details</h3>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <BaseInput placeholder="Developer name" value={data.developerName} />
+        <BaseInput placeholder="Company legal name" value={data.legalCompanyName} />
+        <BaseInput placeholder="CIN / registration number" value={data.registrationNumber} />
+        <BaseInput placeholder="Website" value={data.website} />
+        <BaseInput placeholder="Support email" value={data.supportEmail} />
+        <BaseInput placeholder="Support phone" value={data.supportPhone} />
+        <BaseInput placeholder="Registered address" value={data.registeredAddress} />
+        <BaseInput placeholder="Source URL" value={data.sourceUrl} />
+      </div>
+    </section>
+  );
+}
+
+export function AppStoreLinksForm({ data }: { data: AdminLoanAppDatabase["selectedApp"]["appStoreLinks"] }) {
+  return (
+    <section className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900">App store links</h3>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <BaseInput placeholder="Play Store URL" value={data.playStoreUrl} />
+        <BaseInput placeholder="App Store URL" value={data.appStoreUrl} />
+        <BaseInput placeholder="Website app URL" value={data.websiteAppUrl} />
+        <BaseInput placeholder="Last checked date" value={data.lastCheckedAt} />
+        <BaseInput placeholder="Store availability status" value={data.storeAvailabilityStatus} />
+      </div>
+    </section>
+  );
+}
+
+export function NbfcPartnerForm({ data }: { data: AdminLoanAppDatabase["selectedApp"]["nbfcPartner"] }) {
+  return (
+    <section className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900">Claimed NBFC partner</h3>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <BaseInput placeholder="NBFC name" value={data.name} />
+        <BaseInput placeholder="NBFC website" value={data.website} />
+        <BaseInput placeholder="RBI registration claim" value={data.rbiRegistrationClaim} />
+        <BaseInput placeholder="Relationship type" value={data.relationshipType} />
+        <BaseInput placeholder="Verification status" value={data.verificationStatus} />
+        <BaseInput placeholder="Source/proof URL" value={data.sourceUrl} />
+        <BaseInput placeholder="Last verified date" value={data.lastVerifiedAt} />
+      </div>
+    </section>
+  );
+}
+
+export function GrievanceOfficerForm({ data }: { data: AdminLoanAppDatabase["selectedApp"]["grievanceOfficer"] }) {
+  return (
+    <section className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900">Grievance officer details</h3>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <BaseInput placeholder="Officer name" value={data.name} />
+        <BaseInput placeholder="Grievance email" value={data.email} />
+        <BaseInput placeholder="Phone" value={data.phone} />
+        <BaseInput placeholder="Address" value={data.address} />
+        <BaseInput placeholder="Source URL" value={data.sourceUrl} />
+        <BaseInput placeholder="Verified date" value={data.verifiedAt} />
+      </div>
+      <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" defaultChecked={data.publicVisible} />
+        Public visibility toggle
+      </label>
+    </section>
+  );
+}
+
+export function AliasDuplicateManager({ aliases, duplicates }: { aliases: string[]; duplicates: string[] }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">Alias and duplicate management</h3>
+      <p className="text-xs text-slate-600">Alternate names, old names, package aliases, rebranded names, and duplicate candidates.</p>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {aliases.map((a) => <span key={a} className="rounded-full bg-slate-100 px-2 py-1 text-xs">{a}</span>)}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {duplicates.map((d) => <span key={d} className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-800">{d}</span>)}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Merge records</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Mark not duplicate</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Link related app</button>
+      </div>
+    </section>
+  );
+}
+
+export function VerificationSourcesPanel({ sources }: { sources: AdminLoanAppDatabase["selectedApp"]["verificationSources"] }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">Verification sources</h3>
+      <div className="space-y-2 text-xs">
+        {sources.map((s, i) => (
+          <div key={i} className="rounded-lg bg-slate-50 p-2">
+            <p>{s.sourceType} • {s.sourceDate} • confidence {s.confidence}</p>
+            <p>{s.sourceUrl}</p>
+            <p>Verified by {s.verifiedBy}</p>
+            <p>{s.notes}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function RiskMetadataPanel({ data }: { data: AdminLoanAppDatabase["selectedApp"]["riskMetadata"] }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">Risk metadata</h3>
+      <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+        <div className="rounded bg-slate-50 p-2">Risk level: {data.riskLevel}</div>
+        <div className="rounded bg-slate-50 p-2">Trust score: {data.trustScore}</div>
+        <div className="rounded bg-slate-50 p-2">Complaint volume: {data.complaintVolume}</div>
+        <div className="rounded bg-slate-50 p-2">Review count: {data.reviewCount}</div>
+        <div className="rounded bg-slate-50 p-2">Harassment: {data.harassmentPercent}%</div>
+        <div className="rounded bg-slate-50 p-2">Hidden charges: {data.hiddenChargesPercent}%</div>
+        <div className="rounded bg-slate-50 p-2">Data privacy: {data.dataPrivacyPercent}%</div>
+        <div className="rounded bg-slate-50 p-2">Recovery abuse: {data.recoveryAbusePercent}%</div>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {data.topComplaintTags.map((t) => <span key={t} className="rounded-full bg-slate-100 px-2 py-1 text-xs">{t}</span>)}
+      </div>
+      <textarea defaultValue={data.manualRiskNote} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" rows={3} />
+    </section>
+  );
+}
+
+export function PublicProfilePreview({ appName }: { appName: string }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">Public profile preview</h3>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+        Preview block: hero header, trust score, risk badge, claimed company details, claimed NBFC partner, grievance details, disclaimer, and top complaint patterns.
+      </div>
+      <div className="mt-2 flex gap-2">
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Preview public page</button>
+        <button className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white">Publish changes</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Save draft</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Request senior review</button>
+      </div>
+      <p className="mt-1 text-[11px] text-slate-500">App: {appName}</p>
+    </section>
+  );
+}
+
+export function AppAuditLog({ items }: { items: AdminLoanAppDatabase["selectedApp"]["auditLog"] }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">Change history / audit log</h3>
+      <div className="space-y-2 text-xs">
+        {items.map((x, i) => (
+          <div key={i} className="rounded-lg bg-slate-50 p-2">
+            <p>{x.adminUser} • {x.timestamp}</p>
+            <p>{x.action} • {x.fieldChanged}</p>
+            <p>{x.previousValue} → {x.newValue}</p>
+            <p>{x.reason}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">View full history</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Restore previous value</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Export audit log</button>
+      </div>
+    </section>
+  );
+}
+
+export function BulkImportAppsPanel() {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">Import apps (CSV)</h3>
+      <p className="text-xs text-slate-600">Fields: app name, package, developer, company, Play Store URL, website, claimed NBFC partner, grievance email, support email, status.</p>
+      <input type="file" accept=".csv" className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-white" />
+      <div className="mt-2 flex gap-2">
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Preview rows</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Detect duplicates</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-xs">Validate required fields</button>
+        <button className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white">Confirm import</button>
+      </div>
+    </section>
+  );
+}
+
+export function AdminPermissionNotice() {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-700 shadow-sm">
+      Roles and permissions: Admin can create, edit, merge, archive, publish. Senior Moderator can verify and edit selected fields. Data Verifier can update sources and verification status. Read-only Analyst can view only.
+    </section>
+  );
+}
+
+export function EmptyState() {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <p className="font-semibold text-slate-900">No app records found.</p>
+      <div className="mt-2 flex justify-center gap-2">
+        <button className="rounded bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Add New App</button>
+        <button className="rounded border border-slate-300 px-3 py-2 text-xs font-semibold">Import Apps</button>
+        <button className="rounded border border-slate-300 px-3 py-2 text-xs font-semibold">Clear Filters</button>
+      </div>
+    </section>
+  );
+}
+
+export function AppDetailEditorDrawer({ data }: { data: AdminLoanAppDatabase["selectedApp"] }) {
+  return (
+    <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <BasicAppIdentityForm data={data.basicIdentity} />
+      <CompanyDetailsForm data={data.companyDetails} />
+      <AppStoreLinksForm data={data.appStoreLinks} />
+      <NbfcPartnerForm data={data.nbfcPartner} />
+      <GrievanceOfficerForm data={data.grievanceOfficer} />
+      <AliasDuplicateManager aliases={data.aliases} duplicates={data.duplicateCandidates} />
+      <VerificationSourcesPanel sources={data.verificationSources} />
+      <RiskMetadataPanel data={data.riskMetadata} />
+      <PublicProfilePreview appName={data.basicIdentity.name} />
+      <AppAuditLog items={data.auditLog} />
+      <BulkImportAppsPanel />
+      <AdminPermissionNotice />
+    </section>
+  );
+}
+
+export default function AdminLoanAppDatabasePage({ data }: { data: AdminLoanAppDatabase }) {
+  const [selectedId, setSelectedId] = useState(data.selectedApp.id);
+  const [filters, setFilters] = useState({});
+  const filteredApps = useMemo(() => applyGlobalFilters(data.apps, adminAppDbFilterSchema, filters), [data.apps, filters]);
+  void selectedId;
+  return (
+    <main className="min-h-screen bg-slate-100 p-4 md:p-6">
+      <div className="mx-auto max-w-[1700px] space-y-4">
+        <AdminAppsHeader stats={data.stats} />
+        <GlobalFilterPanel schema={adminAppDbFilterSchema} state={filters} onChange={setFilters} />
+        <AdminAppSearchFilters />
+        <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[1.2fr_1fr]">
+          <div className="space-y-4">
+            <AdminAppRecordsTable apps={filteredApps} onSelect={setSelectedId} />
+          </div>
+          <AppDetailEditorDrawer data={data.selectedApp} />
+        </div>
+      </div>
+    </main>
+  );
+}

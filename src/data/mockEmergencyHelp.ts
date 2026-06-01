@@ -1,0 +1,58 @@
+import type { EmergencyHelpData } from "@/types/emergencyHelp";
+
+export const emergencyHelp: EmergencyHelpData = {
+  situations: [
+    { id: "s1", title: "They are threatening me", summary: "You may be receiving aggressive calls or messages demanding immediate payment.", recommendedFirstStep: "Preserve call and message evidence before responding." },
+    { id: "s2", title: "They contacted my relatives", summary: "People connected to you are receiving pressure calls or messages.", recommendedFirstStep: "Collect screenshots and call details from affected contacts." },
+    { id: "s3", title: "They are calling my office", summary: "Workplace calls or messages are being used to pressure repayment.", recommendedFirstStep: "Record timestamps and caller details for each incident." },
+    { id: "s4", title: "They threatened edited photos", summary: "You were threatened with morphed images or image-based blackmail.", recommendedFirstStep: "Do not engage. Preserve proof and consider urgent cybercrime reporting." },
+    { id: "s5", title: "They sent fake legal/police messages", summary: "You received suspicious legal or police-style notices over chat or SMS.", recommendedFirstStep: "Save full message headers/screenshots before verification." },
+    { id: "s6", title: "Payment made but still pending", summary: "Your payment is complete but status remains open or recovery calls continue.", recommendedFirstStep: "Save payment receipt, transaction ID, and support conversation." },
+    { id: "s7", title: "They are abusing me on calls", summary: "Calls include verbal abuse, intimidation, or repeated pressure.", recommendedFirstStep: "Log call times and consider blocking after preserving records." },
+    { id: "s8", title: "They are asking payment to personal UPI", summary: "You are asked to pay to personal UPI IDs instead of official channels.", recommendedFirstStep: "Pause payment and verify official repayment channels first." },
+  ],
+  immediateChecklist: [
+    { id: "c1", label: "Take screenshots", critical: true },
+    { id: "c2", label: "Save call logs", critical: true },
+    { id: "c3", label: "Save payment receipts", critical: true },
+    { id: "c4", label: "Do not delete messages", critical: true },
+    { id: "c5", label: "Do not share OTPs/passwords", critical: true },
+    { id: "c6", label: "Do not send Aadhaar/PAN again on WhatsApp", critical: true },
+    { id: "c7", label: "Do not respond with threats", critical: false },
+    { id: "c8", label: "Inform trusted family member if needed", critical: false },
+    { id: "c9", label: "Report serious online threats to cybercrime portal", critical: true },
+  ],
+  evidenceItems: [
+    { id: "e1", title: "Chat screenshots", detail: "Capture full conversation with timestamps and sender details." },
+    { id: "e2", title: "Call logs", detail: "Save incoming/outgoing logs with date and time." },
+    { id: "e3", title: "Payment proof", detail: "Keep UPI, bank, and wallet transaction receipts." },
+    { id: "e4", title: "App screenshots", detail: "Record app profile, loan status, and repayment screen." },
+    { id: "e5", title: "Loan agreement screenshots", detail: "Capture terms, charges, and repayment schedule sections." },
+    { id: "e6", title: "SMS/email communication", detail: "Preserve sender details and complete message context." },
+    { id: "e7", title: "UPI/payment requests", detail: "Save IDs and requests, especially personal account requests." },
+    { id: "e8", title: "Fake legal/police messages", detail: "Preserve the message before blocking/reporting sender." },
+  ],
+  warnings: [
+    { id: "w1", text: "Do not pay random personal UPI without verification" },
+    { id: "w2", text: "Do not share private photos" },
+    { id: "w3", text: "Do not upload Aadhaar/PAN publicly" },
+    { id: "w4", text: "Do not post private phone numbers online" },
+    { id: "w5", text: "Do not abuse or threaten back" },
+    { id: "w6", text: "Do not ignore blackmail involving images" },
+  ],
+  reportingOptions: [
+    { id: "r1", title: "National cybercrime portal", description: "You may consider reporting online blackmail, image threats, and digital abuse.", actionLabel: "Open portal", actionUrl: "https://cybercrime.gov.in" },
+    { id: "r2", title: "App grievance officer", description: "Submit a written grievance with transaction IDs and evidence summary.", actionLabel: "Prepare grievance", actionUrl: "/policy" },
+    { id: "r3", title: "RBI CMS if applicable", description: "If the lender falls under applicable regulated channels, you may consider filing through RBI CMS.", actionLabel: "Open RBI CMS", actionUrl: "https://cms.rbi.org.in" },
+    { id: "r4", title: "Consumer helpline", description: "Use a consumer grievance channel for unresolved repayment or service issues.", actionLabel: "View helpline guidance", actionUrl: "/legal-guide" },
+    { id: "r5", title: "Local police station", description: "If threats escalate or involve safety risks, you may consider local police reporting.", actionLabel: "Prepare incident note", actionUrl: "/complaint-templates" },
+    { id: "r6", title: "Advocate/legal counsel", description: "Speak to a qualified advocate for legal advice specific to your case.", actionLabel: "Find legal checklist", actionUrl: "/legal-guide" },
+  ],
+  quickTemplates: [
+    { id: "t1", title: "Threat calls complaint", summary: "Template for repeated threat or abusive call reporting.", ctaLabel: "Use template", ctaUrl: "/complaint-templates" },
+    { id: "t2", title: "Photo morphing threat complaint", summary: "Template for image-based blackmail threats.", ctaLabel: "Use template", ctaUrl: "/complaint-templates" },
+    { id: "t3", title: "Relative calling complaint", summary: "Template for unauthorized third-party contact harassment.", ctaLabel: "Use template", ctaUrl: "/complaint-templates" },
+    { id: "t4", title: "Fake legal notice complaint", summary: "Template for suspicious legal/police-style message reporting.", ctaLabel: "Use template", ctaUrl: "/complaint-templates" },
+    { id: "t5", title: "Payment not updated complaint", summary: "Template for paid-but-pending repayment status disputes.", ctaLabel: "Use template", ctaUrl: "/complaint-templates" },
+  ],
+};

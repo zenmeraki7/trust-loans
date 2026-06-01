@@ -1,0 +1,67 @@
+import type { BusinessClaimData } from "@/types/businessClaim";
+
+export const businessClaimData: BusinessClaimData = {
+  searchResults: [
+    {
+      appId: "swift-cash",
+      appName: "SwiftCash Loan",
+      logoUrl: "https://dummyimage.com/64x64/1f2937/ffffff.png&text=SC",
+      developerName: "Swift Fintech Solutions",
+      companyName: "Swift Fintech Solutions Pvt. Ltd.",
+      claimedNbfcPartner: "Example Capital Finance Ltd.",
+      claimStatus: "claim_pending",
+      riskLevel: "high",
+    },
+    {
+      appId: "cash-lane",
+      appName: "CashLane",
+      logoUrl: "https://dummyimage.com/64x64/111827/ffffff.png&text=CL",
+      developerName: "CashLane Labs",
+      companyName: "CashLane Labs Pvt. Ltd.",
+      claimedNbfcPartner: "Metro Finserve",
+      claimStatus: "claimed",
+      riskLevel: "low",
+    },
+  ],
+  claimForm: {
+    representativeName: "",
+    businessEmail: "",
+    phone: "",
+    companyName: "",
+    designation: "",
+    website: "",
+    appName: "",
+    playStoreUrl: "",
+    appStoreUrl: "",
+    companyRegistrationNumber: "",
+    claimedNbfcPartner: "",
+    rbiRegistrationClaim: "",
+    grievanceOfficer: {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    },
+    supportingDocuments: [],
+  },
+  verificationSteps: [
+    { key: "details_submitted", label: "Business details submitted", status: "in_progress" },
+    { key: "email_verification", label: "Email verification", status: "pending" },
+    { key: "ownership_verification", label: "Ownership verification", status: "pending" },
+    { key: "document_review", label: "Document review", status: "pending" },
+    { key: "claim_decision", label: "Claim decision", status: "pending" },
+  ],
+  responseForm: {
+    reviewId: "",
+    responseBody: "",
+    responseCategory: "clarification",
+    officialContactChannel: "",
+  },
+  correctionRequest: {
+    fieldName: "",
+    currentValue: "",
+    proposedValue: "",
+    explanation: "",
+    supportingProof: [],
+  },
+};

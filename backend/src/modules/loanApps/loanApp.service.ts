@@ -1,0 +1,62 @@
+import { AppError } from "../../utils/AppError.js";
+import { auditLog } from "../../utils/auditLogger.js";
+import { getPagination, paginatedResponse } from "../../utils/pagination.js";
+import { toPublicReviewDto } from "../reviews/review.dto.js";
+import { loanAppRepository } from "./loanApp.repository.js";
+import type { SuggestLoanAppInput } from "./loanApp.validators.js";
+
+export const loanAppService = {
+  async list(query: unknown) {
+    const pagination = getPagination(query);
+    const filters = query as { q?: string; riskLevel?: string; verificationStatus?: string };
+    const { items, total } = await loanAppRepository.findMany({
+      skip: pagination.skip,
+      take: pagination.take,
+      q: filters.q,
+      riskLevel: filters.riskLevel,
+      verificationStatus: filters.verificationStatus,
+    });
+    return paginatedResponse(items, total, pagination.page, pagination.limit);
+  },
+
+  async getProfile(slug: string) {
+    const app = await loanAppRepository.findBySlug(slug);
+    if (!app) {
+      throw new AppError("Loan app not found", 404);
+    }
+    return app;
+  },
+
+  async suggest(input: SuggestLoanAppInput, actorId?: string) {
+    const app = await loanAppRepository.suggestApp(input);
+    await auditLog({
+      actorId,
+      action: "loan_app.suggested",
+      targetType: "LoanApp",
+      targetId: app.id,
+      afterJson: { name: app.name, status: app.status },
+      reason: "Public loan app suggestion",
+    });
+    return app;
+  },
+
+  async getPublicReviews(appId: string, query: unknown) {
+    const app = await loanAppRepository.findById(appId);
+    if (!app) {
+      throw new AppError("Loan app not found", 404);
+    }
+
+    const pagination = getPagination(query);
+    const [items, total] = await Promise.all([
+      loanAppRepository.findPublishedReviewsByAppId({
+        appId,
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      loanAppRepository.countPublishedReviewsByAppId(appId),
+    ]);
+
+    return paginatedResponse(items.map(toPublicReviewDto), total, pagination.page, pagination.limit);
+  },
+};
+

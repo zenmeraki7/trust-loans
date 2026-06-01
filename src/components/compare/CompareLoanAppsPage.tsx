@@ -1,0 +1,312 @@
+import Link from "next/link";
+import type { CompareLoanApp } from "@/types/compareLoanApps";
+import type { RiskLevel } from "@/types/loanAppProfile";
+
+export function RatingStars({ rating }: { rating: number }) {
+  const rounded = Math.round(rating);
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span key={i} className={i <= rounded ? "text-amber-500" : "text-slate-300"}>
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
+  const tone: Record<RiskLevel, string> = {
+    low: "bg-emerald-100 text-emerald-700",
+    medium: "bg-amber-100 text-amber-700",
+    high: "bg-orange-100 text-orange-700",
+    severe: "bg-rose-100 text-rose-700",
+  };
+  const label = riskLevel === "severe" ? "Severe Complaints" : `${riskLevel[0].toUpperCase()}${riskLevel.slice(1)} Risk`;
+  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone[riskLevel]}`}>{label}</span>;
+}
+
+export function TrustScoreBadge({ score }: { score: number }) {
+  const tone = score >= 70 ? "bg-emerald-100 text-emerald-700" : score >= 40 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700";
+  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone}`}>{score}/100</span>;
+}
+
+export function AppCompareSelector() {
+  return (
+    <div className="mt-4 flex flex-col gap-2 md:flex-row">
+      <input className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm placeholder:text-slate-400" placeholder="Search and select up to 3 loan apps" />
+      <button className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white">Add App</button>
+      <Link href="/loan-apps" className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
+        Browse All Loan Apps
+      </Link>
+    </div>
+  );
+}
+
+export function CompareHeader() {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur md:p-8">
+      <h1 className="text-2xl font-semibold text-slate-900 md:text-4xl">Compare loan apps before you borrow</h1>
+      <p className="mt-2 max-w-3xl text-sm text-slate-600 md:text-base">
+        Review trust scores, complaint patterns, claimed NBFC partners, and user experiences side by side.
+      </p>
+      <AppCompareSelector />
+    </section>
+  );
+}
+
+export function SelectedCompareCards({ apps }: { apps: CompareLoanApp[] }) {
+  return (
+    <section className="sticky top-0 z-20 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+      <div className="flex gap-3 overflow-x-auto">
+        {apps.map((app) => (
+          <article key={app.id} className="min-w-[280px] rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="mb-2 flex items-center gap-3">
+              <img src={app.logoUrl} alt={`${app.name} logo`} className="h-10 w-10 rounded-xl border border-slate-200" />
+              <div>
+                <h3 className="font-semibold text-slate-900">{app.name}</h3>
+                <p className="text-xs text-slate-500">{app.developerName}</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600">Claimed NBFC partner: {app.claimedNbfcPartner}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <RiskBadge riskLevel={app.riskLevel} />
+              <TrustScoreBadge score={app.trustScore} />
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+              <RatingStars rating={app.averageRating} />
+              <span>{app.averageRating.toFixed(1)} ({app.reviewCount} reviews)</span>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Link href={app.profileUrl} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Profile</Link>
+              <Link href={`${app.profileUrl}/submit-review`} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Write review</Link>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function metricTone(value: number) {
+  if (value >= 70) return "text-emerald-700";
+  if (value >= 40) return "text-amber-700";
+  return "text-rose-700";
+}
+
+export function CompareMetricTable({ apps }: { apps: CompareLoanApp[] }) {
+  const rows: Array<{ label: string; get: (app: CompareLoanApp) => string | number; isNumeric?: boolean }> = [
+    { label: "Overall Trust Score", get: (a) => a.trustScore, isNumeric: true },
+    { label: "Average Rating", get: (a) => a.averageRating.toFixed(1) },
+    { label: "Total Reviews", get: (a) => a.reviewCount.toLocaleString() },
+    { label: "Harassment Complaint Score", get: (a) => a.scores.harassment, isNumeric: true },
+    { label: "Hidden Charges Score", get: (a) => a.scores.hiddenCharges, isNumeric: true },
+    { label: "Data Privacy Concern Score", get: (a) => a.scores.dataPrivacy, isNumeric: true },
+    { label: "Recovery Behaviour Score", get: (a) => a.scores.recoveryBehaviour, isNumeric: true },
+    { label: "Customer Support Score", get: (a) => a.scores.customerSupport, isNumeric: true },
+    { label: "Transparency Score", get: (a) => a.scores.transparency, isNumeric: true },
+    { label: "Grievance Response Score", get: (a) => a.scores.grievanceResponse, isNumeric: true },
+    { label: "Company Response Status", get: (a) => (a.publicDetails.companyResponded ? "Available" : "Not available") },
+    { label: "Claimed NBFC Partner Available", get: (a) => (a.publicDetails.nbfcPartnerAvailable ? "Available" : "Under verification") },
+    { label: "Grievance Officer Details Available", get: (a) => (a.publicDetails.grievanceOfficerAvailable ? "Available" : "Unavailable") },
+    { label: "Last Updated Date", get: (a) => a.publicDetails.lastUpdated },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 text-xl font-semibold text-slate-900">Score comparison</h2>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-left text-slate-500">
+              <th className="py-2 pr-3">Metric</th>
+              {apps.map((app) => (
+                <th key={app.id} className="py-2 pr-3">{app.name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} className="border-b border-slate-100">
+                <td className="py-2 pr-3 font-medium text-slate-700">{row.label}</td>
+                {apps.map((app) => {
+                  const val = row.get(app);
+                  const cls = typeof val === "number" && row.isNumeric ? metricTone(val) : "text-slate-700";
+                  return <td key={app.id + row.label} className={`py-2 pr-3 ${cls}`}>{val}</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export function ComplaintPatternCompare({ apps }: { apps: CompareLoanApp[] }) {
+  const metrics = [
+    ["Harassment reports", "harassmentReportsPercent"],
+    ["Contact list abuse reports", "contactListAbusePercent"],
+    ["Hidden charges reports", "hiddenChargesPercent"],
+    ["Data misuse reports", "dataMisusePercent"],
+    ["Fake legal notice reports", "fakeLegalNoticePercent"],
+    ["Photo morphing reports", "photoMorphingPercent"],
+    ["Payment not updated reports", "paymentNotUpdatedPercent"],
+    ["Loan not closed reports", "loanNotClosedPercent"],
+  ] as const;
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 text-xl font-semibold text-slate-900">Complaint pattern comparison</h2>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {apps.map((app) => (
+          <article key={app.id} className="rounded-xl border border-slate-200 p-3">
+            <h3 className="mb-2 font-semibold text-slate-900">{app.name}</h3>
+            <div className="space-y-2">
+              {metrics.map(([label, key]) => {
+                const value = app.complaintPatterns[key];
+                return (
+                  <div key={label}>
+                    <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                      <span>{label}</span>
+                      <span>{value}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-100">
+                      <div className="h-2 rounded-full bg-orange-400" style={{ width: `${value}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function RatingDistributionCompare({ apps }: { apps: CompareLoanApp[] }) {
+  const stars = [
+    ["5 star", "fiveStar"],
+    ["4 star", "fourStar"],
+    ["3 star", "threeStar"],
+    ["2 star", "twoStar"],
+    ["1 star", "oneStar"],
+  ] as const;
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 text-xl font-semibold text-slate-900">Rating distribution</h2>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {apps.map((app) => (
+          <article key={app.id} className="rounded-xl border border-slate-200 p-3">
+            <h3 className="mb-2 font-semibold text-slate-900">{app.name}</h3>
+            <div className="space-y-2">
+              {stars.map(([label, key]) => {
+                const value = app.ratingDistribution[key];
+                return (
+                  <div key={label}>
+                    <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                      <span>{label}</span>
+                      <span>{value}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-100">
+                      <div className="h-2 rounded-full bg-slate-600" style={{ width: `${value}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function ComparisonSummaryInsights({ apps }: { apps: CompareLoanApp[] }) {
+  const highestTrust = apps.reduce((a, b) => (a.trustScore >= b.trustScore ? a : b));
+  const highestHiddenCharges = apps.reduce((a, b) =>
+    a.complaintPatterns.hiddenChargesPercent >= b.complaintPatterns.hiddenChargesPercent ? a : b,
+  );
+  const leastGrievanceDetails = apps.find((a) => !a.publicDetails.grievanceOfficerAvailable);
+  const companyResponseApp = apps.find((a) => a.publicDetails.companyResponded);
+
+  const insights = [
+    `${highestTrust.name} has the highest trust score among selected apps.`,
+    `${highestHiddenCharges.name} has more user reports mentioning hidden charges.`,
+    leastGrievanceDetails
+      ? `${leastGrievanceDetails.name} has fewer public grievance details available.`
+      : "Public grievance detail availability appears consistent across selected apps.",
+    companyResponseApp
+      ? `Company response information is available for ${companyResponseApp.name}.`
+      : "Company response information is currently limited across selected apps.",
+    "Review complaint patterns carefully and verify lender or NBFC claims independently before borrowing.",
+  ];
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 text-xl font-semibold text-slate-900">Comparison summary</h2>
+      <div className="space-y-2">
+        {insights.map((insight) => (
+          <p key={insight} className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+            {insight}
+          </p>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function CompareDisclaimerBox() {
+  return (
+    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+      Comparison data is based on public information, app-provided details, and user-submitted reviews. We do not make final legal findings.
+      Users should independently verify lender, NBFC, and grievance details before borrowing.
+    </section>
+  );
+}
+
+export function EmptyCompareState() {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <h2 className="text-xl font-semibold text-slate-900">Select loan apps to compare.</h2>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Search loan apps</button>
+        <Link href="/loan-apps" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Browse directory</Link>
+        <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">View highest reviewed apps</button>
+      </div>
+    </section>
+  );
+}
+
+export default function CompareLoanAppsPage({ apps }: { apps: CompareLoanApp[] }) {
+  if (apps.length === 0) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 px-4 py-6 md:px-6 md:py-10">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <CompareHeader />
+          <EmptyCompareState />
+          <CompareDisclaimerBox />
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 pb-24">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6 md:py-10">
+        <CompareHeader />
+        <SelectedCompareCards apps={apps.slice(0, 3)} />
+        <CompareMetricTable apps={apps.slice(0, 3)} />
+        <ComplaintPatternCompare apps={apps.slice(0, 3)} />
+        <RatingDistributionCompare apps={apps.slice(0, 3)} />
+        <ComparisonSummaryInsights apps={apps.slice(0, 3)} />
+        <CompareDisclaimerBox />
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:hidden">
+        <button className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white">Add App</button>
+      </div>
+    </main>
+  );
+}
