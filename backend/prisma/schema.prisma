@@ -19,11 +19,13 @@ model User {
   updatedAt     DateTime   @updatedAt
 
   reviews       Review[]
+  reviewReports ReviewReport[]
   evidenceFiles EvidenceFile[]
   corrections   CorrectionRequest[]
   notifications Notification[]
   notificationSettings NotificationSettings?
   complaintDrafts ComplaintDraft[]
+  harassmentCases HarassmentCase[]
 }
 
 enum UserRole {
@@ -75,10 +77,159 @@ model LoanApp {
   complaintSummaries ComplaintSummary[]
   evidenceFiles      EvidenceFile[]
   complaintDrafts    ComplaintDraft[]
+  harassmentCases    HarassmentCase[]
 
   @@index([status])
   @@index([riskLevel])
   @@index([verificationStatus])
+}
+
+model HarassmentCase {
+  id                    String               @id @default(cuid())
+  userId                String
+  loanAppId             String?
+  title                 String
+  caseType              HarassmentCaseType
+  status                HarassmentCaseStatus @default(OPEN)
+  priority              CasePriority         @default(NORMAL)
+  summary               String?
+  incidentDate          DateTime?
+  loanReferenceId       String?
+  loanAmountRange       String?
+  decisionTreeSessionId String?
+  linkedReviewId        String?
+  linkedEvidenceFileIds String[]
+  linkedComplaintDraftIds String[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  user                  User                 @relation(fields: [userId], references: [id])
+  loanApp               LoanApp?             @relation(fields: [loanAppId], references: [id])
+  timelineItems         CaseTimelineItem[]
+  checklistItems        CaseChecklistItem[]
+  externalComplaints    ExternalComplaint[]
+
+  @@index([userId])
+  @@index([loanAppId])
+  @@index([status])
+}
+
+model CaseTimelineItem {
+  id              String            @id @default(cuid())
+  caseId          String
+  type            CaseTimelineType
+  title           String
+  description     String?
+  happenedAt      DateTime?
+  evidenceFileIds String[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  case            HarassmentCase    @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+}
+
+model CaseChecklistItem {
+  id              String          @id @default(cuid())
+  caseId          String
+  label           String
+  description     String?
+  completed       Boolean         @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+
+  case            HarassmentCase  @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+}
+
+model ExternalComplaint {
+  id              String                    @id @default(cuid())
+  caseId          String
+  channel         ExternalComplaintChannel
+  complaintNumber String?
+  submittedAt     DateTime?
+  status          ExternalComplaintStatus   @default(NOT_STARTED)
+  notes           String?
+  documentUrl     String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  case            HarassmentCase            @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+  @@index([channel])
+}
+
+enum HarassmentCaseType {
+  THREAT_CALLS
+  CONTACT_LIST_ABUSE
+  OFFICE_HARASSMENT
+  PHOTO_MORPHING_THREAT
+  DATA_MISUSE
+  FAKE_LEGAL_NOTICE
+  PAYMENT_NOT_UPDATED
+  LOAN_NOT_CLOSED
+  HIDDEN_CHARGES
+  PERSONAL_UPI_PRESSURE
+  OTHER
+}
+
+enum HarassmentCaseStatus {
+  OPEN
+  WAITING_FOR_RESPONSE
+  ACTION_NEEDED
+  RESOLVED
+  ARCHIVED
+}
+
+enum CasePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum CaseTimelineType {
+  LOAN_DISBURSED
+  PAYMENT_DUE
+  PAYMENT_MADE
+  THREAT_RECEIVED
+  CALL_RECEIVED
+  RELATIVE_CONTACTED
+  OFFICE_CONTACTED
+  PHOTO_THREAT_RECEIVED
+  FAKE_LEGAL_NOTICE_RECEIVED
+  COMPLAINT_SENT
+  RESPONSE_RECEIVED
+  EVIDENCE_UPLOADED
+  REVIEW_SUBMITTED
+  OTHER
+}
+
+enum ExternalComplaintChannel {
+  APP_GRIEVANCE_OFFICER
+  RBI_CMS
+  CYBERCRIME_PORTAL
+  CONSUMER_HELPLINE
+  LOCAL_POLICE
+  ADVOCATE
+  APP_STORE_REPORT
+  PLAY_STORE_REPORT
+  OTHER
+}
+
+enum ExternalComplaintStatus {
+  NOT_STARTED
+  DRAFTED
+  SUBMITTED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESPONDED
+  RESOLVED
+  CLOSED
+  UNKNOWN
 }
 
 model ComplaintTemplate {
@@ -209,6 +360,7 @@ model Review {
   user             User?             @relation(fields: [userId], references: [id])
   evidenceFiles    EvidenceFile[]
   companyResponses CompanyResponse[]
+  reports          ReviewReport[]
 
   @@index([loanAppId])
   @@index([userId])
@@ -243,6 +395,30 @@ enum DisplayMode {
   ANONYMOUS
   FIRST_NAME_ONLY
   VERIFIED_BADGE_ONLY
+}
+
+model ReviewReport {
+  id             String             @id @default(cuid())
+  reviewId       String
+  reporterUserId String?
+  reason         String
+  note           String?
+  status         ReviewReportStatus @default(PENDING_REVIEW)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  review         Review             @relation(fields: [reviewId], references: [id])
+  reporter       User?              @relation(fields: [reporterUserId], references: [id])
+
+  @@index([reviewId])
+  @@index([reporterUserId])
+  @@index([status])
+}
+
+enum ReviewReportStatus {
+  PENDING_REVIEW
+  RESOLVED
+  DISMISSED
 }
 
 model EvidenceFile {

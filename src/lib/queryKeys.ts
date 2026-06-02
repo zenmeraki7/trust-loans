@@ -8,4 +8,5 @@ export const queryKeys = {
   complaintTemplate: (key: string) => ["complaintTemplate", key] as const,
   complaintDrafts: () => ["complaintDrafts"] as const,
   complaintDraft: (id: string) => ["complaintDraft", id] as const,
+  compareLoanApps: (ids: string[] = []) => ["compareLoanApps", ids] as const,
 };

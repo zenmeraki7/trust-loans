@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useAdminEvidenceDetail, useAdminEvidenceQueue, useEvidenceDecisionActions, useSecureOpenEvidence } from "@/hooks/useEvidence";
-import type { AdminEvidenceVaultData } from "@/types/adminEvidenceVault";
 
 function EvidenceStatusBadge({ status }: { status: string }) {
   return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs">{status.replaceAll("_", " ")}</span>;
 }
 
-export default function AdminEvidenceVaultPage(_data: { data: AdminEvidenceVaultData }) {
+export default function AdminEvidenceVaultPage() {
   const queue = useAdminEvidenceQueue();
   const [selectedId, setSelectedId] = useState<string>("");
   const detail = useAdminEvidenceDetail(selectedId);

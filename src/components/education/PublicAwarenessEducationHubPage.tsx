@@ -13,6 +13,7 @@ export function EducationHero() {
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href="/loan-apps" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Search Loan Apps</Link>
+        <Link href="/learn/payday-loans" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Payday Loans Guide</Link>
         <Link href="/legal-action-guide" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Check Safety Checklist</Link>
         <Link href="/loan-apps/swift-cash" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Read User Reviews</Link>
         <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Report Your Experience</Link>

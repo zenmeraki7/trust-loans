@@ -7,11 +7,9 @@ import type { EvidenceStatus, ReportStatus, UserDashboardData } from "@/types/us
 import GlobalFilterPanel from "@/components/filters/GlobalFilterPanel";
 import { userDashboardFilterSchema } from "@/config/filterSchemas";
 import { applyGlobalFilters } from "@/lib/filterEngine";
-import OfficialStoreReportCard from "@/components/store-report/OfficialStoreReportCard";
-import { officialStoreReport } from "@/data/mockOfficialStoreReport";
-import { useLoanApps } from "@/hooks/useLoanApps";
 import SavedDraftsSection from "@/components/complaints/SavedDraftsSection";
 import { useEvidenceMetadata } from "@/hooks/useEvidence";
+import { useUserDashboard } from "@/hooks/useUserDashboard";
 
 export function RatingStars({ rating }: { rating: number }) {
   return (
@@ -175,16 +173,6 @@ export function ReportDetailDrawer({
   const [evidenceId, setEvidenceId] = useState("");
   const evidenceQuery = useEvidenceMetadata(evidenceId);
   if (!report) return null;
-  const storeReportData = {
-    ...officialStoreReport,
-    app: {
-      ...officialStoreReport.app,
-      id: report.appId,
-      name: report.appName,
-      developerName: "",
-    },
-  };
-  const maskedFiles = ["evidence_****01.png", "calllog_****87.pdf", "receipt_****45.jpg"];
   return (
     <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-xl overflow-y-auto border-l border-slate-200 bg-white p-5 shadow-2xl">
       <div className="mb-3 flex items-center justify-between">
@@ -203,7 +191,7 @@ export function ReportDetailDrawer({
       <div className="mt-3">
         <p className="text-sm font-semibold text-slate-900">Evidence files (masked)</p>
         <div className="mt-1 flex flex-wrap gap-2">
-          {maskedFiles.map((f) => <span key={f} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">{f}</span>)}
+          {report.evidenceFiles.length ? report.evidenceFiles.map((f) => <span key={f} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">{f}</span>) : <span className="text-xs text-slate-500">No evidence files linked to this review.</span>}
         </div>
         <div className="mt-2 space-y-2">
           <input value={evidenceId} onChange={(e) => setEvidenceId(e.target.value)} placeholder="Enter evidence ID to fetch private metadata" className="w-full rounded border border-slate-300 px-2 py-1 text-xs" />
@@ -232,9 +220,6 @@ export function ReportDetailDrawer({
             </div>
           ))}
         </div>
-      </div>
-      <div className="mt-4">
-        <OfficialStoreReportCard data={storeReportData} />
       </div>
     </aside>
   );
@@ -434,73 +419,31 @@ export function EmptyDashboardState() {
   );
 }
 
-const createDashboardData = (savedApps: UserDashboardData["savedApps"]): UserDashboardData => ({
-  user: {
-    id: "current-user",
-    displayName: "Current user",
-    email: "Private",
-    emailVerified: false,
-  },
-  summary: {
-    totalReviews: 0,
-    published: 0,
-    underModeration: 0,
-    needsMoreInfo: 0,
-    rejected: 0,
-    drafts: 0,
-    evidenceFiles: 0,
-  },
-  reports: [],
-  harassmentCaseFolder: {
-    reportId: "",
-    reportTitle: "No active harassment case folder",
-    reportStatus: "draft",
-    evidenceFiles: [],
-    callLogTimeline: [],
-    complaintTemplatesUsed: [],
-    grievanceOfficerEmailSent: { sent: false, sentAt: "", subject: "" },
-    cybercrimeComplaintNumber: "",
-    rbiCmsComplaintNumber: "",
-    companyResponse: { available: false, summary: "No company response linked to a case folder yet.", respondedAt: "" },
-    statusTimeline: [],
-    nextActions: ["Submit a review or report to start a case folder."],
-  },
-  evidenceVault: {
-    totalFiles: 0,
-    pendingReview: 0,
-    acceptedForVerification: 0,
-    rejectedForSafety: 0,
-  },
-  savedApps,
-});
-
 export default function UserDashboardPage() {
-  const appsQuery = useLoanApps({});
-  const savedApps: UserDashboardData["savedApps"] = (appsQuery.data?.items ?? []).slice(0, 4).map((app) => ({
-    id: app.id,
-    name: app.name,
-    logoUrl: app.logoUrl,
-    riskLevel: app.riskLevel,
-    trustScore: app.trustScore,
-    latestTrend: app.summary,
-  }));
-  const data = createDashboardData(savedApps);
+  const dashboardQuery = useUserDashboard();
   const [statusFilter, setStatusFilter] = useState<ReportStatus | "all">("all");
   const [selectedReport, setSelectedReport] = useState<UserDashboardData["reports"][number] | null>(null);
   const [filters, setFilters] = useState({});
 
+  const data = dashboardQuery.data;
   const filteredReports = useMemo(() => {
-    const scoped = statusFilter === "all" ? data.reports : data.reports.filter((r) => r.status === statusFilter);
+    const reports = data?.reports ?? [];
+    const scoped = statusFilter === "all" ? reports : reports.filter((r) => r.status === statusFilter);
     return applyGlobalFilters(scoped, userDashboardFilterSchema, filters);
-  }, [data.reports, statusFilter, filters]);
+  }, [data?.reports, statusFilter, filters]);
+
+  if (dashboardQuery.isLoading) {
+    return <main className="min-h-screen bg-slate-50 p-6"><section className="mx-auto max-w-5xl rounded-2xl border bg-white p-8 text-center text-sm text-slate-600">Loading dashboard data...</section></main>;
+  }
+
+  if (dashboardQuery.isError || !data) {
+    return <main className="min-h-screen bg-slate-50 p-6"><section className="mx-auto max-w-5xl rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center text-sm text-rose-900">Could not load dashboard data. {(dashboardQuery.error as Error | null)?.message}</section></main>;
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 pb-10">
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6 md:py-10">
         <DashboardHeader data={data} />
-        {appsQuery.isLoading && <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">Loading dashboard data...</section>}
-        {appsQuery.isError && <section className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900">Could not load dashboard data. {(appsQuery.error as Error).message}</section>}
-        {appsQuery.data?.source === "fallback" && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Using local development fallback because the backend API is unavailable.</p>}
         <DashboardStatusCards summary={data.summary} onFilter={setStatusFilter} />
         <GlobalFilterPanel schema={userDashboardFilterSchema} state={filters} onChange={setFilters} />
         {data.reports.length === 0 ? (

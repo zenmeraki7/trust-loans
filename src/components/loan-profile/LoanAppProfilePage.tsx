@@ -358,7 +358,6 @@ export default function LoanAppProfilePage({ slug }: { slug: string }) {
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 pb-24">
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6 md:py-10">
         <ProfileHero app={app} />
-        {profileQuery.data?.source === "fallback" && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Using local development fallback because the backend API is unavailable.</p>}
         <ScoreBreakdown app={app} />
         <AppDetailsCard app={app} />
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">

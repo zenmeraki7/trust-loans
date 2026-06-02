@@ -1,6 +1,5 @@
-import CompareLoanAppsPage from "@/components/compare/CompareLoanAppsPage";
-import { compareApps } from "@/data/mockCompareLoanApps";
+import CompareLoanAppsRoute from "@/components/compare/CompareLoanAppsRoute";
 
 export default function Page() {
-  return <CompareLoanAppsPage apps={compareApps} />;
+  return <CompareLoanAppsRoute />;
 }

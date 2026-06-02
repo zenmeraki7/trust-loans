@@ -17,5 +17,16 @@ export const reviewController = {
     const review = await reviewService.markHelpful(req.params.id);
     res.json({ id: review.id, helpfulCount: review.helpfulCount });
   },
-};
 
+  async report(req: Request, res: Response) {
+    const report = await reviewService.reportReview({ ...req.body, reporterUserId: req.user?.id });
+    res.status(201).json({
+      id: report.id,
+      reviewId: report.reviewId,
+      reason: report.reason,
+      status: report.status,
+      createdAt: report.createdAt,
+      message: "Review report submitted for moderation.",
+    });
+  },
+};

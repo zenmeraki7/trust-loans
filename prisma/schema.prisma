@@ -19,6 +19,7 @@ model User {
   updatedAt     DateTime   @updatedAt
 
   reviews       Review[]
+  reviewReports ReviewReport[]
   evidenceFiles EvidenceFile[]
   corrections   CorrectionRequest[]
   notifications Notification[]
@@ -139,6 +140,7 @@ model Review {
   user             User?             @relation(fields: [userId], references: [id])
   evidenceFiles    EvidenceFile[]
   companyResponses CompanyResponse[]
+  reports          ReviewReport[]
 
   @@index([loanAppId])
   @@index([userId])
@@ -173,6 +175,30 @@ enum DisplayMode {
   ANONYMOUS
   FIRST_NAME_ONLY
   VERIFIED_BADGE_ONLY
+}
+
+model ReviewReport {
+  id             String             @id @default(cuid())
+  reviewId       String
+  reporterUserId String?
+  reason         String
+  note           String?
+  status         ReviewReportStatus @default(PENDING_REVIEW)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  review         Review             @relation(fields: [reviewId], references: [id])
+  reporter       User?              @relation(fields: [reporterUserId], references: [id])
+
+  @@index([reviewId])
+  @@index([reporterUserId])
+  @@index([status])
+}
+
+enum ReviewReportStatus {
+  PENDING_REVIEW
+  RESOLVED
+  DISMISSED
 }
 
 model EvidenceFile {
@@ -346,4 +372,3 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([createdAt])
 }
-

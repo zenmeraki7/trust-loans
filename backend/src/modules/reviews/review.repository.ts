@@ -1,6 +1,6 @@
 import { ReviewStatus } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
-import type { CreateReviewInput } from "./review.validators.js";
+import type { CreateReviewInput, ReportReviewInput } from "./review.validators.js";
 
 export const reviewRepository = {
   create(input: CreateReviewInput) {
@@ -51,6 +51,17 @@ export const reviewRepository = {
         publicBody: input.publicBody,
         redactionsApplied: input.redactionsApplied,
         publishedAt: input.publishedAt,
+      },
+    });
+  },
+
+  createReport(input: ReportReviewInput & { reporterUserId?: string }) {
+    return prisma.reviewReport.create({
+      data: {
+        reviewId: input.reviewId,
+        reporterUserId: input.reporterUserId,
+        reason: input.reason,
+        note: input.note,
       },
     });
   },

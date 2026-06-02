@@ -339,7 +339,6 @@ export default function LoanAppsDirectoryPage() {
           }}
         />
         <PlatformStatsCards stats={stats} />
-        {data?.source === "fallback" && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Using local development fallback because the backend API is unavailable.</p>}
         <CompareAppsBar selectedApps={selectedForCompare.slice(0, 3)} />
         <MobileFilterDrawer onClear={clearFilters} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">

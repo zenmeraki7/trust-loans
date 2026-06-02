@@ -512,8 +512,8 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
 
   const canSubmit = useMemo(() => {
     const c = submission.confirmations;
-    return Boolean(submission.rating.overall && submission.title.trim() && submission.body.trim() && c.ownExperience && c.notLegalComplaint && c.noPrivateInfo && c.moderationAccepted && c.noFalseClaims && localScan.canSubmit);
-  }, [submission, localScan.canSubmit]);
+    return Boolean(submission.rating.overall && submission.title.trim() && submission.body.trim() && c.ownExperience && c.notLegalComplaint && c.noPrivateInfo && c.moderationAccepted && c.noFalseClaims);
+  }, [submission]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

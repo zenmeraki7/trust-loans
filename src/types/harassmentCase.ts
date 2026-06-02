@@ -1,0 +1,21 @@
+export type HarassmentCase = {
+  id: string;
+  userId: string;
+  loanAppId?: string | null;
+  title: string;
+  caseType: string;
+  status: string;
+  priority: string;
+  summary?: string | null;
+  incidentDate?: string | null;
+  loanReferenceId?: string | null;
+  loanAmountRange?: string | null;
+  decisionTreeSessionId?: string | null;
+  linkedReviewId?: string | null;
+  linkedEvidenceFileIds: string[];
+  linkedComplaintDraftIds: string[];
+  timelineItems: Array<{ id: string; type: string; title: string; description?: string | null; happenedAt?: string | null; evidenceFileIds: string[] }>;
+  checklistItems: Array<{ id: string; label: string; description?: string | null; completed: boolean; completedAt?: string | null }>;
+  externalComplaints: Array<{ id: string; channel: string; complaintNumber?: string | null; submittedAt?: string | null; status: string; notes?: string | null }>;
+  updatedAt: string;
+};

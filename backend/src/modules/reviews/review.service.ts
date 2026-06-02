@@ -2,7 +2,7 @@ import { AppError } from "../../utils/AppError.js";
 import { auditLog } from "../../utils/auditLogger.js";
 import { loanAppRepository } from "../loanApps/loanApp.repository.js";
 import { reviewRepository } from "./review.repository.js";
-import type { CreateReviewInput } from "./review.validators.js";
+import type { CreateReviewInput, ReportReviewInput } from "./review.validators.js";
 
 export const reviewService = {
   async createReview(input: CreateReviewInput) {
@@ -45,5 +45,23 @@ export const reviewService = {
       afterJson: { helpfulCount: updated.helpfulCount },
     });
     return updated;
+  },
+
+  async reportReview(input: ReportReviewInput & { reporterUserId?: string }) {
+    const review = await reviewRepository.findById(input.reviewId);
+    if (!review) {
+      throw new AppError("Review not found", 404);
+    }
+
+    const report = await reviewRepository.createReport(input);
+    await auditLog({
+      actorId: input.reporterUserId,
+      action: "review.reported",
+      targetType: "Review",
+      targetId: input.reviewId,
+      afterJson: { reportId: report.id, reason: report.reason, status: report.status },
+      reason: input.reason,
+    });
+    return report;
   },
 };

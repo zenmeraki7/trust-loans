@@ -46,6 +46,7 @@ export type UserDashboardData = {
     submittedAt: string;
     updatedAt: string;
     evidenceStatus: EvidenceStatus;
+    evidenceFiles: string[];
     publicUrl: string;
     moderationNotes: string[];
     privacy: {

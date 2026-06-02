@@ -6,7 +6,7 @@ import type { PublicReviewDetailData } from "@/types/publicReviewDetail";
 import GlobalFilterPanel from "@/components/filters/GlobalFilterPanel";
 import { userDashboardFilterSchema } from "@/config/filterSchemas";
 import { applyGlobalFilters } from "@/lib/filterEngine";
-import { useMarkReviewHelpful, useReviewDetail } from "@/hooks/useReviewDetail";
+import { useMarkReviewHelpful, useReportReview, useReviewDetail } from "@/hooks/useReviewDetail";
 
 export function RatingStars({ rating }: { rating: number }) {
   return <div className="flex gap-1">{[1,2,3,4,5].map((i)=><span key={i} className={i<=Math.round(rating)?"text-amber-500":"text-slate-300"}>★</span>)}</div>;
@@ -50,10 +50,20 @@ export function CompanyResponseCard({ data }: { data: PublicReviewDetailData["co
 export function ReportReviewModal({
   open,
   reasons,
+  selectedReason,
+  isPending,
+  resultMessage,
+  onReasonChange,
+  onSubmit,
   onClose,
 }: {
   open: boolean;
   reasons: PublicReviewDetailData["reportReasons"];
+  selectedReason: string;
+  isPending: boolean;
+  resultMessage: string;
+  onReasonChange: (reason: string) => void;
+  onSubmit: () => void;
   onClose: () => void;
 }) {
   if (!open) return null;
@@ -62,10 +72,11 @@ export function ReportReviewModal({
       <div className="mx-auto max-w-md rounded-2xl bg-white p-4 shadow-xl">
         <h4 className="text-sm font-semibold">Report review</h4>
         <div className="mt-2 space-y-1">
-          {reasons.map((r) => <label key={r.id} className="block text-sm"><input type="radio" name="reason" className="mr-2" />{r.label}</label>)}
+          {reasons.map((r) => <label key={r.id} className="block text-sm"><input type="radio" name="reason" value={r.id} checked={selectedReason === r.id} onChange={() => onReasonChange(r.id)} className="mr-2" />{r.label}</label>)}
         </div>
+        {resultMessage && <p className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-700">{resultMessage}</p>}
         <div className="mt-3 flex gap-2">
-          <button className="rounded bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Submit report</button>
+          <button onClick={onSubmit} disabled={!selectedReason || isPending} className="rounded bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60">Submit report</button>
           <button onClick={onClose} className="rounded border px-3 py-2 text-xs font-semibold">Cancel</button>
         </div>
       </div>
@@ -107,7 +118,10 @@ export function MobileReviewActionBar({ onReport, onHelpful, helpfulPending }: {
 export default function PublicReviewDetailPage({ reviewId }: { reviewId: string }) {
   const reviewQuery = useReviewDetail(reviewId);
   const helpful = useMarkReviewHelpful(reviewId);
+  const reportReview = useReportReview(reviewId);
   const [reportOpen, setReportOpen] = useState(false);
+  const [selectedReason, setSelectedReason] = useState("");
+  const [reportMessage, setReportMessage] = useState("");
   const [filters, setFilters] = useState({});
   const data = reviewQuery.data?.data;
   const filteredRelated = useMemo(
@@ -121,11 +135,21 @@ export default function PublicReviewDetailPage({ reviewId }: { reviewId: string 
     return <main className="min-h-screen bg-slate-50 p-6"><section className="mx-auto max-w-5xl rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center text-sm text-rose-900"><p>Could not load this review. {(reviewQuery.error as Error | null)?.message}</p><button onClick={() => reviewQuery.refetch()} className="mt-3 rounded-xl bg-rose-900 px-4 py-2 text-sm font-semibold text-white">Try again</button></section></main>;
   }
   const onHelpful = () => helpful.mutate();
+  const onSubmitReport = () => {
+    if (!selectedReason) return;
+    reportReview.mutate(selectedReason, {
+      onSuccess: (result) => {
+        setReportMessage(result.message);
+      },
+      onError: (error) => {
+        setReportMessage(error instanceof Error ? error.message : "Could not submit report.");
+      },
+    });
+  };
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 pb-24">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-6 md:px-6 md:py-10 xl:grid-cols-[1fr_320px]">
         <div className="space-y-4">
-          {reviewQuery.data?.source === "fallback" && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Using local development fallback because the backend API is unavailable.</p>}
           <ReviewDetailHeader data={data} onHelpful={onHelpful} helpfulPending={helpful.isPending} />
           <ReviewContentCard data={data} />
           <ReviewModerationTransparency data={data} />
@@ -139,7 +163,16 @@ export default function PublicReviewDetailPage({ reviewId }: { reviewId: string 
         </div>
         <LinkedLoanAppSummaryCard app={data.linkedApp} />
       </div>
-      <ReportReviewModal open={reportOpen} reasons={data.reportReasons} onClose={() => setReportOpen(false)} />
+      <ReportReviewModal
+        open={reportOpen}
+        reasons={data.reportReasons}
+        selectedReason={selectedReason}
+        isPending={reportReview.isPending}
+        resultMessage={reportMessage}
+        onReasonChange={setSelectedReason}
+        onSubmit={onSubmitReport}
+        onClose={() => setReportOpen(false)}
+      />
       <MobileReviewActionBar onReport={() => setReportOpen(true)} onHelpful={onHelpful} helpfulPending={helpful.isPending} />
     </main>
   );

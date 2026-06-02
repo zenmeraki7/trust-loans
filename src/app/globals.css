@@ -2,12 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-  margin: 0;
-  padding: 0;
+@layer base {
+  :root {
+    --brand-navy: #06235d;
+    --brand-navy-strong: #0d2a62;
+    --brand-blue: #2563eb;
+    --brand-blue-hover: #1d4ed8;
+    --brand-white: #ffffff;
+    --brand-bg: #f3f7ff;
+    --brand-text: #1e293b;
+    --brand-muted: #475569;
+    --brand-border: #dce6f4;
+    --brand-surface-soft: #f6f9ff;
+    --brand-surface-soft-2: #eef4ff;
+    --brand-heading-alt: #12306b;
+    --brand-warning: #a15d00;
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    @apply antialiased;
+    background-color: var(--brand-bg);
+    color: var(--brand-text);
+    font-family: "Segoe UI", "Poppins", "Inter", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+    background-image: radial-gradient(circle at 20% 0%, rgba(148, 163, 184, 0.18), transparent 28%),
+      radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.08), transparent 24%);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tight;
+    color: var(--brand-navy-strong);
+  }
+
+  a {
+    @apply transition-colors duration-150;
+    color: var(--brand-navy);
+  }
+
+  input,
+  select,
+  textarea {
+    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply border-slate-500 ring-2 ring-slate-200;
+  }
+
+  button {
+    @apply transition-all duration-150;
+  }
+}
+
+@layer components {
+  .app-card {
+    @apply rounded-2xl bg-white shadow-sm;
+    border: 1px solid var(--brand-border);
+  }
+
+  .app-muted {
+    color: var(--brand-muted);
+  }
+
+  .app-primary-btn {
+    background: var(--brand-blue);
+    color: var(--brand-white);
+  }
+
+  .app-primary-btn:hover {
+    background: var(--brand-blue-hover);
+  }
 }

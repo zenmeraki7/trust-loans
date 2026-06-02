@@ -21,5 +21,13 @@ export const reviewIdParamSchema = z.object({
   params: z.object({ id: z.string().min(1) }),
 });
 
-export type CreateReviewInput = z.infer<typeof createReviewSchema>["body"];
+export const reportReviewSchema = z.object({
+  body: z.object({
+    reviewId: z.string().min(1),
+    reason: z.string().min(1).max(120),
+    note: z.string().max(2000).optional(),
+  }),
+});
 
+export type CreateReviewInput = z.infer<typeof createReviewSchema>["body"];
+export type ReportReviewInput = z.infer<typeof reportReviewSchema>["body"];

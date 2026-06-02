@@ -1,9 +1,8 @@
-import CompanyNbfcProfilePage from "@/components/entities/CompanyNbfcProfilePage";
-import { entityProfile } from "@/data/mockEntityProfile";
+import CompanyNbfcProfileRoute from "@/components/entities/CompanyNbfcProfileRoute";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function Page({ params }: Props) {
   const { slug } = await params;
-  return <CompanyNbfcProfilePage data={{ ...entityProfile, slug }} />;
+  return <CompanyNbfcProfileRoute slug={slug} />;
 }

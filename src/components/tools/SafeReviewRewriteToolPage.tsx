@@ -3,12 +3,25 @@
 import { useState } from "react";
 import SafeReviewWriter from "@/components/tools/SafeReviewWriter";
 import { useReviewSafetyScan } from "@/hooks/useReviewSafetyScan";
-import { scanReviewTextLocally } from "@/lib/reviewSafetyScan";
+import type { ReviewSafetyScanResponse } from "@/types/reviewSafety";
+
+const emptyScan: ReviewSafetyScanResponse = {
+  score: {
+    privacyRisk: 0,
+    defamationRisk: 0,
+    abuseRisk: 0,
+    moderationReadiness: 100,
+  },
+  detectedRisks: [],
+  suggestedTitle: "",
+  suggestedBody: "",
+  warnings: [],
+  canSubmit: true,
+};
 
 export default function SafeReviewRewriteToolPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [local, setLocal] = useState(() => scanReviewTextLocally({ title: "", body: "" }));
   const scan = useReviewSafetyScan();
 
   return (
@@ -17,11 +30,7 @@ export default function SafeReviewRewriteToolPage() {
       <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Review title" className="w-full rounded-lg border border-slate-300 p-2 text-sm" />
       <textarea
         value={body}
-        onChange={(e) => {
-          const next = e.target.value;
-          setBody(next);
-          setLocal(scanReviewTextLocally({ title, body: next }));
-        }}
+        onChange={(e) => setBody(e.target.value)}
         rows={8}
         placeholder="Paste review draft"
         className="w-full rounded-lg border border-slate-300 p-2 text-sm"
@@ -32,7 +41,7 @@ export default function SafeReviewRewriteToolPage() {
       >
         Run backend scan
       </button>
-      <SafeReviewWriter scan={scan.data ?? local} onApplySuggestion={setBody} />
+      <SafeReviewWriter scan={scan.data ?? emptyScan} onApplySuggestion={setBody} />
     </main>
   );
 }
