@@ -1,6 +1,5 @@
-import AdminCorrectionDisputeQueuePage from "@/components/admin/AdminCorrectionDisputeQueuePage";
-import { adminCorrectionDisputeQueue } from "@/data/mockAdminCorrectionDisputeQueue";
+import AdminCorrectionDisputeQueueRoute from "@/components/admin/AdminCorrectionDisputeQueueRoute";
 
 export default function Page() {
-  return <AdminCorrectionDisputeQueuePage data={adminCorrectionDisputeQueue} />;
+  return <AdminCorrectionDisputeQueueRoute />;
 }

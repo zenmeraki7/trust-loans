@@ -1,6 +1,5 @@
-import NotificationCenterPage from "@/components/notifications/NotificationCenterPage";
-import { notificationCenter } from "@/data/mockNotificationCenter";
+import NotificationCenterRoute from "@/components/notifications/NotificationCenterRoute";
 
 export default function Page() {
-  return <NotificationCenterPage data={notificationCenter} />;
+  return <NotificationCenterRoute />;
 }

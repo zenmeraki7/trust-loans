@@ -1,6 +1,5 @@
-import AdminLoanAppDatabasePage from "@/components/admin/AdminLoanAppDatabasePage";
-import { adminLoanAppDatabase } from "@/data/mockAdminLoanAppDatabase";
+import AdminLoanAppDatabaseRoute from "@/components/admin/AdminLoanAppDatabaseRoute";
 
 export default function Page() {
-  return <AdminLoanAppDatabasePage data={adminLoanAppDatabase} />;
+  return <AdminLoanAppDatabaseRoute />;
 }

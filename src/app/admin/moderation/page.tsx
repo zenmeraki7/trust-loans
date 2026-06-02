@@ -1,6 +1,5 @@
-import AdminModerationDashboardPage from "@/components/admin/AdminModerationDashboardPage";
-import { moderationDashboard } from "@/data/mockAdminModeration";
+import AdminModerationDashboardRoute from "@/components/admin/AdminModerationDashboardRoute";
 
 export default function Page() {
-  return <AdminModerationDashboardPage data={moderationDashboard} />;
+  return <AdminModerationDashboardRoute />;
 }
