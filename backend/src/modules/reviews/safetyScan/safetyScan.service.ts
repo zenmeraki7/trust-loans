@@ -14,7 +14,8 @@ export const safetyScanService = {
     const moderationReadiness = Math.max(0, 100 - Math.round(privacyRisk * 0.45 + defamationRisk * 0.3 + abuseRisk * 0.25));
 
     const suggestedBody = normalizedBody
-      .replace(/\b(fraud|scam|criminals?|thief|illegal gang|money laundering|fake company)\b/gi, "concerning behaviour")
+      .replace(/\b(frauds?|scams?|scammers?|criminals?|thieves|thief|illegal gang|money laundering|fake company)\b/gi, "concerning behaviour")
+      .replace(/\bgarbage app\b/gi, "very poor experience")
       .replace(/\b(i will destroy|share this everywhere|arrest them immediately)\b/gi, "I request a review through appropriate channels")
       .replace(/\b(?:\+91[-\s]?)?[6-9]\d{9}\b/g, "[number shared privately]")
       .replace(/\b\d{4}\s?\d{4}\s?\d{4}\b|\b[A-Z]{5}[0-9]{4}[A-Z]\b/gi, "[sensitive id removed]");

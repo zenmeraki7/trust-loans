@@ -1,6 +1,6 @@
 import { Prisma, ProfileStatus, ReviewStatus, RiskLevel } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
-import type { SuggestLoanAppInput } from "./loanApp.validators.js";
+import type { CreateLoanAppInput, SuggestLoanAppInput } from "./loanApp.validators.js";
 
 export const loanAppRepository = {
   async findMany(input: { skip: number; take: number; q?: string; riskLevel?: string; verificationStatus?: string }) {
@@ -80,6 +80,35 @@ export const loanAppRepository = {
         appStoreUrl: input.appStoreUrl,
         status: ProfileStatus.DRAFT,
       },
+    });
+  },
+
+  createApp(input: CreateLoanAppInput) {
+    return prisma.loanApp.create({
+      data: {
+        slug: input.slug,
+        name: input.name,
+        logoUrl: input.logoUrl,
+        packageName: input.packageName,
+        developerName: input.developerName,
+        companyName: input.companyName,
+        websiteUrl: input.websiteUrl,
+        playStoreUrl: input.playStoreUrl,
+        appStoreUrl: input.appStoreUrl,
+        claimedNbfcPartner: input.claimedNbfcPartner,
+        status: input.status ?? ProfileStatus.PUBLISHED,
+        verificationStatus: input.verificationStatus,
+        claimStatus: input.claimStatus,
+        riskLevel: input.riskLevel,
+        trustScore: input.trustScore,
+        averageRating: input.averageRating,
+        reviewCount: input.reviewCount,
+        grievanceEmail: input.grievanceEmail,
+        supportEmail: input.supportEmail,
+        supportPhone: input.supportPhone,
+        registeredAddress: input.registeredAddress,
+      },
+      include: { complaintSummaries: true },
     });
   },
 

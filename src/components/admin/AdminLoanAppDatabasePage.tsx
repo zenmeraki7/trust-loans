@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import type { CreateAdminLoanAppInput } from "@/hooks/useAdminDashboards";
 import type {
   AdminLoanAppDatabase,
   ClaimStatus,
@@ -47,7 +48,7 @@ export function ClaimStatusBadge({ status }: { status: ClaimStatus }) {
   return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${cls}`}>{status.replaceAll("_", " ")}</span>;
 }
 
-export function AdminAppsHeader({ stats }: { stats: AdminLoanAppDatabase["stats"] }) {
+export function AdminAppsHeader({ stats, onAdd }: { stats: AdminLoanAppDatabase["stats"]; onAdd?: () => void }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h1 className="text-2xl font-semibold text-slate-900">Loan App Database</h1>
@@ -55,13 +56,106 @@ export function AdminAppsHeader({ stats }: { stats: AdminLoanAppDatabase["stats"
         Manage app profiles, company records, claimed NBFC links, public details, aliases, and verification status.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Add New App</button>
+        <button type="button" onClick={onAdd} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Add New App</button>
         <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Import Apps</button>
         <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Export Database</button>
         <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Review Duplicate Records</button>
       </div>
       <AdminAppStatsCards stats={stats} />
     </section>
+  );
+}
+
+const defaultCreateForm = {
+  slug: "",
+  name: "",
+  developerName: "",
+  companyName: "",
+  claimedNbfcPartner: "",
+  supportEmail: "",
+  grievanceEmail: "",
+};
+
+function slugFromName(name: string) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function CreateLoanAppPanel({
+  error,
+  isCreating,
+  onCancel,
+  onCreate,
+}: {
+  error?: string;
+  isCreating?: boolean;
+  onCancel: () => void;
+  onCreate: (input: CreateAdminLoanAppInput) => Promise<unknown>;
+}) {
+  const [form, setForm] = useState(defaultCreateForm);
+  const [localError, setLocalError] = useState("");
+  const [createdSlug, setCreatedSlug] = useState("");
+
+  const update = (field: keyof typeof defaultCreateForm, value: string) => {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "name" && !current.slug ? { slug: slugFromName(value) } : {}),
+    }));
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLocalError("");
+    if (!form.slug || !form.name) {
+      setLocalError("App name and slug are required.");
+      return;
+    }
+    await onCreate({
+      ...form,
+      status: "PUBLISHED",
+      verificationStatus: "UNDER_VERIFICATION",
+      claimStatus: "UNCLAIMED",
+      riskLevel: "UNDER_REVIEW",
+      trustScore: 50,
+      averageRating: 0,
+      reviewCount: 0,
+    });
+    setCreatedSlug(form.slug);
+    setForm(defaultCreateForm);
+  };
+
+  return (
+    <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Add loan app</h2>
+          <p className="text-sm text-slate-600">This creates a real database record and makes the public profile/review form available immediately.</p>
+        </div>
+        <button type="button" onClick={onCancel} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Cancel</button>
+      </div>
+      {(localError || error) && <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">{localError || error}</p>}
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <input value={form.name} onChange={(e) => update("name", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="App name, e.g. Swift Cash" />
+        <input value={form.slug} onChange={(e) => update("slug", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Slug, e.g. swift-cash" />
+        <input value={form.developerName} onChange={(e) => update("developerName", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Developer name" />
+        <input value={form.companyName} onChange={(e) => update("companyName", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Company name" />
+        <input value={form.claimedNbfcPartner} onChange={(e) => update("claimedNbfcPartner", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Claimed NBFC partner" />
+        <input value={form.supportEmail} onChange={(e) => update("supportEmail", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Support email" />
+        <input value={form.grievanceEmail} onChange={(e) => update("grievanceEmail", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Grievance email" />
+      </div>
+      <button type="submit" disabled={isCreating} className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+        {isCreating ? "Creating..." : "Create app"}
+      </button>
+      {createdSlug && (
+        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <p className="font-semibold">App created.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a href={`/loan-apps/${createdSlug}`} className="rounded border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">Open profile</a>
+            <a href={`/loan-apps/${createdSlug}/submit-review`} className="rounded border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">Open review form</a>
+          </div>
+        </div>
+      )}
+    </form>
   );
 }
 
@@ -125,7 +219,7 @@ export function AdminAppRecordsTable({
       <table className="min-w-[1200px] text-left text-xs">
         <thead>
           <tr className="border-b border-slate-200 text-slate-500">
-            {["App", "Package", "Developer", "Company", "Claimed NBFC partner", "Trust score", "Risk", "Reviews", "Verification", "Claim", "Last updated", "Actions"].map((h) => (
+            {["App", "Slug", "Package", "Developer", "Company", "Claimed NBFC partner", "Trust score", "Risk", "Reviews", "Verification", "Claim", "Last updated", "Actions"].map((h) => (
               <th key={h} className="py-2 pr-3">{h}</th>
             ))}
           </tr>
@@ -139,6 +233,7 @@ export function AdminAppRecordsTable({
                   <span className="font-medium text-slate-900">{a.name}</span>
                 </div>
               </td>
+              <td className="py-2 pr-3 font-mono text-[11px] text-slate-600">{a.slug}</td>
               <td className="py-2 pr-3">{a.packageName}</td>
               <td className="py-2 pr-3">{a.developerName}</td>
               <td className="py-2 pr-3">{a.companyName}</td>
@@ -152,6 +247,7 @@ export function AdminAppRecordsTable({
               <td className="py-2 pr-3">
                 <div className="flex gap-1">
                   <button onClick={() => onSelect(a.id)} className="rounded border border-slate-300 px-2 py-1">View</button>
+                  <a href={`/loan-apps/${a.slug}/submit-review`} className="rounded border border-slate-300 px-2 py-1">Review form</a>
                   <button className="rounded border border-slate-300 px-2 py-1">Edit</button>
                   <button className="rounded border border-slate-300 px-2 py-1">Verify</button>
                   <button className="rounded border border-slate-300 px-2 py-1">Merge</button>
@@ -413,15 +509,34 @@ export function AppDetailEditorDrawer({ data }: { data: AdminLoanAppDatabase["se
   );
 }
 
-export default function AdminLoanAppDatabasePage({ data }: { data: AdminLoanAppDatabase }) {
+export default function AdminLoanAppDatabasePage({
+  data,
+  createError = "",
+  isCreating = false,
+  onCreateApp,
+}: {
+  data: AdminLoanAppDatabase;
+  createError?: string;
+  isCreating?: boolean;
+  onCreateApp?: (input: CreateAdminLoanAppInput) => Promise<unknown>;
+}) {
   const [selectedId, setSelectedId] = useState(data.selectedApp.id);
   const [filters, setFilters] = useState({});
+  const [showCreate, setShowCreate] = useState(false);
   const filteredApps = useMemo(() => applyGlobalFilters(data.apps, adminAppDbFilterSchema, filters), [data.apps, filters]);
   void selectedId;
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
       <div className="mx-auto max-w-[1700px] space-y-4">
-        <AdminAppsHeader stats={data.stats} />
+        <AdminAppsHeader stats={data.stats} onAdd={() => setShowCreate(true)} />
+        {showCreate && onCreateApp && (
+          <CreateLoanAppPanel
+            error={createError}
+            isCreating={isCreating}
+            onCancel={() => setShowCreate(false)}
+            onCreate={onCreateApp}
+          />
+        )}
         <GlobalFilterPanel schema={adminAppDbFilterSchema} state={filters} onChange={setFilters} />
         <AdminAppSearchFilters />
         <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[1.2fr_1fr]">

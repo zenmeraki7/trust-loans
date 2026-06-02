@@ -36,7 +36,7 @@ export default function SafeReviewRewriteToolPage() {
         className="w-full rounded-lg border border-slate-300 p-2 text-sm"
       />
       <button
-        onClick={() => scan.mutate({ title, body, tags: [], reviewType: "GENERAL_REVIEW" })}
+        onClick={() => scan.mutate({ title, body, tags: [], reviewType: "general_review" })}
         className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
       >
         Run backend scan

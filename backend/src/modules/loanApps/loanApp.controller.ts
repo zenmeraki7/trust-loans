@@ -23,6 +23,11 @@ export const loanAppController = {
     });
   },
 
+  async create(req: Request, res: Response) {
+    const app = await loanAppService.create(req.body, req.user?.id);
+    res.status(201).json(toPublicLoanAppProfileDto(app));
+  },
+
   async reviews(req: Request, res: Response) {
     const reviews = await loanAppService.getPublicReviews(req.params.id, req.query);
     res.json(reviews);

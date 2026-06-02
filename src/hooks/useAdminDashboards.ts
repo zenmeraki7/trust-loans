@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import { apiLoanAppSchema, type ApiLoanApp, type PaginatedResponse } from "@/types/apiDtos";
 import type { AdminCorrectionDisputeQueueData, QueueStatus, RequestType, Urgency } from "@/types/adminCorrectionDisputeQueue";
@@ -40,6 +40,23 @@ type CorrectionDto = {
   sourceUrl?: string | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+};
+
+export type CreateAdminLoanAppInput = {
+  slug: string;
+  name: string;
+  developerName?: string;
+  companyName?: string;
+  claimedNbfcPartner?: string;
+  supportEmail?: string;
+  grievanceEmail?: string;
+  status?: "DRAFT" | "PUBLISHED" | "UNDER_REVIEW" | "HIDDEN" | "ARCHIVED";
+  verificationStatus?: "UNVERIFIED" | "PARTIALLY_VERIFIED" | "VERIFIED" | "UNDER_VERIFICATION" | "CONFLICTING_INFORMATION" | "NEEDS_MANUAL_REVIEW";
+  claimStatus?: "UNCLAIMED" | "CLAIM_PENDING" | "CLAIMED" | "DISPUTED_CLAIM";
+  riskLevel?: "LOW" | "MEDIUM" | "HIGH" | "SEVERE_COMPLAINT_PATTERN" | "UNDER_REVIEW" | "INSUFFICIENT_DATA";
+  trustScore?: number;
+  averageRating?: number;
+  reviewCount?: number;
 };
 
 const toIso = (value?: string | Date | null) => (value ? new Date(value).toISOString() : "");
@@ -356,6 +373,28 @@ export function useAdminLoanAppDatabase() {
       const response = await apiClient<PaginatedResponse<ApiLoanApp> & { count?: number }>("/api/apps?limit=100", adminAuth);
       return buildAdminApps(response.items.map((item) => apiLoanAppSchema.parse(item)));
     },
+  });
+}
+
+export function useCreateAdminLoanApp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateAdminLoanAppInput) =>
+      apiClient<ApiLoanApp>("/api/apps", {
+        ...adminAuth,
+        method: "POST",
+        body: {
+          status: "PUBLISHED",
+          verificationStatus: "UNDER_VERIFICATION",
+          claimStatus: "UNCLAIMED",
+          riskLevel: "UNDER_REVIEW",
+          trustScore: 50,
+          averageRating: 0,
+          reviewCount: 0,
+          ...input,
+        },
+      }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["adminLoanAppDatabase"] }),
   });
 }
 

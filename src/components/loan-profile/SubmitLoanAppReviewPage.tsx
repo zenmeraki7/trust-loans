@@ -450,7 +450,7 @@ export function MobileSubmitBar({
   onSaveDraft: () => void;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-4xl gap-2">
         <button onClick={onSubmit} disabled={!canSubmit} className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Submit Review</button>
         <button onClick={onSaveDraft} className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">Save Draft</button>
@@ -518,14 +518,22 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLocalScan(scanReviewTextLocally({ title: submission.title, body: submission.body }));
-    }, 300);
+      if (submission.title.trim() || submission.body.trim()) {
+        safetyScan.mutate({
+          title: submission.title,
+          body: submission.body,
+          tags: submission.tags,
+          reviewType: submission.reviewType,
+        });
+      }
+    }, 700);
     return () => clearTimeout(timer);
-  }, [submission.title, submission.body]);
+  }, [submission.title, submission.body, submission.tags, submission.reviewType]);
 
   const onSubmit = () => {
     if (!canSubmit) return;
     safetyScan.mutate(
-      { title: submission.title, body: submission.body, tags: submission.tags, reviewType: "GENERAL_REVIEW" },
+      { title: submission.title, body: submission.body, tags: submission.tags, reviewType: submission.reviewType },
       {
         onSuccess: (scan) => {
           if (!scan.canSubmit) {
@@ -627,6 +635,8 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
             />
             <SafeReviewWriter
               scan={safetyScan.data ?? localScan}
+              isScanning={safetyScan.isPending}
+              errorMessage={safetyScan.isError ? (safetyScan.error as Error).message : ""}
               onApplySuggestion={(body) => setSubmission((s) => ({ ...s, body }))}
             />
             <IssueTagSelector
