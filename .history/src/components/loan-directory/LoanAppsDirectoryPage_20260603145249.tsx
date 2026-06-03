@@ -130,6 +130,27 @@ export function DirectoryHeroSearch({
   );
 }
 
+export function TrustScoreExplanation() {
+  const signals = ["User reviews", "Complaint trends", "Transparency signals", "Public grievance information"];
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Methodology</p>
+      <h2 className="mt-2 text-xl font-semibold text-slate-950">How Trust Scores Work</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">
+        Trust scores combine borrower-reported experience with visible accountability signals so visitors can evaluate risk before installing or sharing personal data.
+      </p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {signals.map((signal) => (
+          <div key={signal} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+            <span className="h-2 w-2 rounded-full bg-blue-600" />
+            {signal}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function PlatformStatsCards({ stats, verifiedProfiles }: { stats: DirectoryStats; verifiedProfiles: number }) {
   const cards = [
     ["Total Apps Listed", stats.totalAppsListed.toLocaleString(), "Profiles tracked across user reports and public details"],
@@ -159,25 +180,25 @@ export function FeaturedCategories({ onSelectCategory }: { onSelectCategory: (ca
     ["Verified Partners", "Profiles with grievance information"],
   ];
 
-  return (
-    <section className="space-y-3">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Featured categories</p>
-        <h2 className="mt-1 text-xl font-semibold text-slate-950">Browse by risk signal</h2>
-      </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        {categories.map(([title, description]) => (
-          <button key={title} onClick={() => onSelectCategory(title)} className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-200 hover:shadow-md">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700">
-              {title.slice(0, 1)}
-            </span>
-            <span className="mt-3 block text-sm font-semibold text-slate-950">{title}</span>
-            <span className="mt-1 block text-sm leading-5 text-slate-600">{description}</span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
+  // return (
+  //   <section className="space-y-3">
+  //     <div>
+  //       <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Featured categories</p>
+  //       <h2 className="mt-1 text-xl font-semibold text-slate-950">Browse by risk signal</h2>
+  //     </div>
+  //     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+  //       {categories.map(([title, description]) => (
+  //         <button key={title} onClick={() => onSelectCategory(title)} className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-200 hover:shadow-md">
+  //           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700">
+  //             {title.slice(0, 1)}
+  //           </span>
+  //           <span className="mt-3 block text-sm font-semibold text-slate-950">{title}</span>
+  //           <span className="mt-1 block text-sm leading-5 text-slate-600">{description}</span>
+  //         </button>
+  //       ))}
+  //     </div>
+  //   </section>
+  // );
 }
 
 export function LoanAppFilterSidebar({
@@ -419,7 +440,10 @@ export default function LoanAppsDirectoryPage() {
           }}
           onQuickFilter={handleCategoryFilter}
         />
-        <PlatformStatsCards stats={stats} verifiedProfiles={verifiedProfiles} />
+        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+          <TrustScoreExplanation />
+          <PlatformStatsCards stats={stats} verifiedProfiles={verifiedProfiles} />
+        </div>
         <FeaturedCategories onSelectCategory={handleCategoryFilter} />
         <MobileFilterDrawer onClear={clearFilters} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">

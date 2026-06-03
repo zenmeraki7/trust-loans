@@ -159,25 +159,7 @@ export function FeaturedCategories({ onSelectCategory }: { onSelectCategory: (ca
     ["Verified Partners", "Profiles with grievance information"],
   ];
 
-  return (
-    <section className="space-y-3">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Featured categories</p>
-        <h2 className="mt-1 text-xl font-semibold text-slate-950">Browse by risk signal</h2>
-      </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        {categories.map(([title, description]) => (
-          <button key={title} onClick={() => onSelectCategory(title)} className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-200 hover:shadow-md">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700">
-              {title.slice(0, 1)}
-            </span>
-            <span className="mt-3 block text-sm font-semibold text-slate-950">{title}</span>
-            <span className="mt-1 block text-sm leading-5 text-slate-600">{description}</span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
+ 
 }
 
 export function LoanAppFilterSidebar({

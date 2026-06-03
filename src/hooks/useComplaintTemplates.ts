@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { defaultComplaintTemplates } from "@/data/defaultComplaintTemplates";
 import { apiClient } from "@/lib/apiClient";
 import { queryKeys } from "@/lib/queryKeys";
 import type { ComplaintDraft, ComplaintFormData, ComplaintOutputType, ComplaintTemplate, GeneratedComplaint } from "@/types/complaintTemplates";
@@ -8,7 +9,15 @@ const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "demo-user";
 export function useComplaintTemplates() {
   return useQuery({
     queryKey: queryKeys.complaintTemplates(),
-    queryFn: () => apiClient<ComplaintTemplate[]>("/api/complaint-templates"),
+    queryFn: async () => {
+      try {
+        const templates = await apiClient<ComplaintTemplate[]>("/api/complaint-templates");
+        return templates.length > 0 ? templates : defaultComplaintTemplates;
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") return defaultComplaintTemplates;
+        throw error;
+      }
+    },
   });
 }
 
@@ -16,7 +25,15 @@ export function useComplaintTemplate(key: string) {
   return useQuery({
     queryKey: queryKeys.complaintTemplate(key),
     enabled: Boolean(key),
-    queryFn: () => apiClient<ComplaintTemplate>(`/api/complaint-templates/${key}`),
+    queryFn: async () => {
+      try {
+        return await apiClient<ComplaintTemplate>(`/api/complaint-templates/${key}`);
+      } catch (error) {
+        const fallback = defaultComplaintTemplates.find((template) => template.key === key);
+        if (process.env.NODE_ENV === "development" && fallback) return fallback;
+        throw error;
+      }
+    },
   });
 }
 
