@@ -98,10 +98,10 @@ export function SimilarComplaintPatternCard({ items }: { items: PublicReviewDeta
 
 export function SafetyNextStepsCard() {
   return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h3 className="font-semibold">Safety next steps</h3><p className="text-sm text-slate-600">If you experienced something similar, you may consider these next steps.</p><div className="mt-2 flex flex-wrap gap-2">{[
-    ["/loan-apps/swift-cash/submit-review","Submit your own review"],
+    ["/loan-apps","Submit your own review"],
     ["/legal-action-guide","Open legal action guide"],
     ["/complaint-templates","Use complaint template"],
-    ["/loan-apps/swift-cash","Check app profile"],
+    ["/loan-apps","Check app profile"],
     ["/compare","Compare similar apps"],
     ["/learn","Preserve evidence checklist"],
   ].map(([href,label])=><Link key={href as string} href={href as string} className="rounded border px-2 py-1 text-xs font-semibold">{label as string}</Link>)}</div></section>;

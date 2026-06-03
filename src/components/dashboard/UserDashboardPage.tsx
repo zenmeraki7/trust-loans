@@ -75,7 +75,7 @@ export function DashboardHeader({ data }: { data: UserDashboardData }) {
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+        <Link href="/loan-apps" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
           Submit New Review
         </Link>
         <Link href="/loan-apps" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
@@ -412,7 +412,7 @@ export function EmptyDashboardState() {
       <h3 className="text-lg font-semibold text-slate-900">You have not submitted any reviews yet.</h3>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <Link href="/loan-apps" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Search loan apps</Link>
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Submit your first review</Link>
+        <Link href="/loan-apps" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Submit your first review</Link>
         <Link href="/legal-action-guide" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Read legal action guide</Link>
       </div>
     </section>

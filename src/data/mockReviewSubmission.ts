@@ -6,7 +6,7 @@ export const appReviewContext: AppReviewContext = {
   appLogoUrl: "https://dummyimage.com/96x96/1f2937/ffffff.png&text=SC",
   trustScore: 32,
   riskLevel: "high",
-  profileUrl: "/loan-apps/swift-cash",
+  profileUrl: "/loan-apps",
 };
 
 export const reviewSubmission: ReviewSubmission = {

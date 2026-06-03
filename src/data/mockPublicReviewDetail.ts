@@ -22,7 +22,7 @@ export const publicReviewDetail: PublicReviewDetailData = {
     averageRating: 1.8,
     reviewCount: 1284,
     riskLevel: "high",
-    profileUrl: "/loan-apps/swift-cash",
+    profileUrl: "/loan-apps",
   },
   metadata: {
     publishedAt: "2026-05-31",

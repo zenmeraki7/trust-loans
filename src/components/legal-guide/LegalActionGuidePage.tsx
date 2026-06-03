@@ -17,7 +17,7 @@ export function LegalGuideHero() {
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Start Safety Checklist</button>
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+        <Link href="/loan-apps" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
           Report Your Experience
         </Link>
         <Link href="/loan-apps" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
@@ -218,7 +218,7 @@ export default function LegalActionGuidePage({
         <LegalDisclaimerBox />
       </div>
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:hidden">
-        <Link href="/loan-apps/swift-cash/submit-review" className="block w-full rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white">
+        <Link href="/loan-apps" className="block w-full rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white">
           Report Experience
         </Link>
       </div>

@@ -12,7 +12,7 @@ export const missingLoanAppSubmission: MissingLoanAppSubmissionData = {
         companyName: "Swift Fintech Solutions Pvt. Ltd.",
         claimedNbfcPartner: "Example Capital Finance Ltd.",
         riskLevel: "high",
-        profileUrl: "/loan-apps/swift-cash",
+        profileUrl: "/loan-apps",
       },
     ],
   },

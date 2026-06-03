@@ -16,8 +16,8 @@ export function PolicyHero() {
         Our platform helps users share loan app experiences safely while protecting privacy, preventing abuse, and allowing fair company responses.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Write a Review</Link>
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Report an Issue</Link>
+        <Link href="/loan-apps" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Write a Review</Link>
+        <Link href="/loan-apps" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Report an Issue</Link>
         <Link href="/business/claim" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Company Response Policy</Link>
         <Link href="/suggest-app" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Submit Correction</Link>
       </div>

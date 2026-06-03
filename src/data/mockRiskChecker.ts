@@ -13,7 +13,7 @@ export const riskCheckerData: RiskCheckerData = {
     reviewCount: 1284,
     riskLevel: "high",
     topComplaintTags: ["Threat calls", "Hidden charges", "Contact list abuse"],
-    profileUrl: "/loan-apps/swift-cash",
+    profileUrl: "/loan-apps",
   },
   steps: [
     {

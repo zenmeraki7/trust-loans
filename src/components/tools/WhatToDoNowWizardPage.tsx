@@ -69,7 +69,7 @@ function buildPlan(answers: Answers) {
       { label: "Open grievance directory", href: "/grievance-directory" },
       { label: "Office/HR protection note", href: "/tools/office-harassment-note" },
       { label: "Use safe review writer", href: "/tools/safe-review-writer" },
-      { label: "Submit review", href: "/loan-apps/swift-cash/submit-review" },
+      { label: "Submit review", href: "/loan-apps" },
     ],
     notToDo,
   };

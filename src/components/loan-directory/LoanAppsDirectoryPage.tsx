@@ -74,8 +74,8 @@ export function DirectoryHeroSearch({
           placeholder="Search by app name, company, NBFC partner, or developer"
         />
         <button onClick={onSearch} className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white">Search</button>
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700">
-          Submit a Review
+        <Link href="#loan-app-results" className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700">
+          Choose App to Review
         </Link>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -228,7 +228,7 @@ export function CompareAppsBar({ selectedApps }: { selectedApps: LoanAppDirector
           <h3 className="text-lg font-semibold text-slate-900">Compare apps</h3>
           <p className="text-sm text-slate-600">Select up to 3 apps to compare trust score, ratings, complaint metrics, and response/grievance details.</p>
         </div>
-        <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Compare selected apps</button>
+        <Link href="/compare" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Open compare page</Link>
       </div>
       {selectedApps.length > 0 && (
         <div className="mt-3 overflow-x-auto">
@@ -257,8 +257,8 @@ export function EmptyDirectoryState({ onClear }: { onClear: () => void }) {
     <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
       <h3 className="text-lg font-semibold text-slate-900">No matching loan app found.</h3>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
-        <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Suggest a loan app for review</button>
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Submit your experience</Link>
+        <Link href="/suggest-app" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Suggest a loan app for review</Link>
+        <Link href="/loan-apps" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Find an app to review</Link>
         <button onClick={onClear} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Clear filters</button>
       </div>
     </section>
@@ -343,7 +343,7 @@ export default function LoanAppsDirectoryPage() {
         <MobileFilterDrawer onClear={clearFilters} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
           <LoanAppFilterSidebar values={{ riskLevel, rating, complaintTag }} onChange={updateParam} />
-          <section className="space-y-4">
+          <section id="loan-app-results" className="scroll-mt-20 space-y-4">
             <LoanAppSortBar value={sort} onChange={(value) => updateParam("sort", value)} />
             {isLoading && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">Loading loan apps...</section>}
             {isError && (

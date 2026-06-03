@@ -15,8 +15,8 @@ export function EducationHero() {
         <Link href="/loan-apps" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Search Loan Apps</Link>
         <Link href="/learn/payday-loans" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Payday Loans Guide</Link>
         <Link href="/legal-action-guide" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Check Safety Checklist</Link>
-        <Link href="/loan-apps/swift-cash" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Read User Reviews</Link>
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Report Your Experience</Link>
+        <Link href="/loan-apps" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Read User Reviews</Link>
+        <Link href="/loan-apps" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Report Your Experience</Link>
       </div>
       <input className="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" placeholder="Search a loan app before borrowing" />
       <p className="mt-2 text-xs text-slate-500">Reviews, risk signals, and public details in one place.</p>
@@ -158,7 +158,7 @@ export function MobileEducationCTA() {
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:hidden">
       <div className="mx-auto flex max-w-4xl gap-2">
         <Link href="/loan-apps" className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white">Search App</Link>
-        <Link href="/loan-apps/swift-cash/submit-review" className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700">Report Issue</Link>
+        <Link href="/loan-apps" className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700">Report Issue</Link>
       </div>
     </div>
   );

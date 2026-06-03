@@ -160,8 +160,8 @@ export function RiskScoreResultCard({
       <p className="mt-3 text-xs font-semibold uppercase text-slate-500">Missing information to verify</p>
       <WarningSignalsList items={result.missingInformation} />
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link href="/loan-apps/swift-cash" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">View app profile</Link>
-        <Link href="/loan-apps/swift-cash/submit-review" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Submit a review</Link>
+        <Link href="/loan-apps" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">View app profile</Link>
+        <Link href="/loan-apps" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Submit a review</Link>
         <Link href="/legal-action-guide" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Open legal action guide</Link>
         <Link href="/complaint-templates" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Use complaint template</Link>
       </div>

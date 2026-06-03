@@ -6,7 +6,7 @@ export const correctionDisputeRequest: CorrectionDisputeRequestData = {
     id: "swift-cash",
     type: "loan_app_profile",
     title: "SwiftCash Loan Profile",
-    publicUrl: "/loan-apps/swift-cash",
+    publicUrl: "/loan-apps",
     currentStatus: "published",
   },
   correction: {
