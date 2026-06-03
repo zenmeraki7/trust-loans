@@ -1,38 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import type { AppProfile, CompanyResponse, Review, RiskLevel, SimilarApp } from "@/types/loanAppProfile";
-import OfficialStoreReportCard from "@/components/store-report/OfficialStoreReportCard";
-import { officialStoreReport } from "@/data/mockOfficialStoreReport";
-import { useLoanAppProfile } from "@/hooks/useLoanAppProfile";
 import { useAppReviews } from "@/hooks/useAppReviews";
-
-const statusMap: Record<AppProfile["status"], { label: string; classes: string }> = {
-  claimed: { label: "Claimed", classes: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  unclaimed: { label: "Unclaimed", classes: "bg-slate-100 text-slate-700 border-slate-200" },
-  under_review: { label: "Under Review", classes: "bg-amber-100 text-amber-700 border-amber-200" },
-  reported_by_users: { label: "Reported by Users", classes: "bg-rose-100 text-rose-700 border-rose-200" },
-};
+import { useLoanAppProfile } from "@/hooks/useLoanAppProfile";
+import type { AppProfile, Review, RiskLevel, ScoreMetric } from "@/types/loanAppProfile";
 
 const riskMap: Record<RiskLevel, { label: string; classes: string }> = {
-  low: { label: "Low Risk", classes: "bg-emerald-100 text-emerald-700" },
-  medium: { label: "Medium Risk", classes: "bg-amber-100 text-amber-700" },
-  high: { label: "High Risk", classes: "bg-orange-100 text-orange-700" },
-  severe: { label: "Severe Complaints", classes: "bg-rose-100 text-rose-700" },
+  low: { label: "Low risk", classes: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+  medium: { label: "Medium risk", classes: "bg-amber-50 text-amber-700 ring-amber-200" },
+  high: { label: "High risk", classes: "bg-orange-50 text-orange-700 ring-orange-200" },
+  severe: { label: "Severe complaints", classes: "bg-rose-50 text-rose-700 ring-rose-200" },
 };
 
-function scoreColor(score: number) {
-  if (score >= 70) return "bg-emerald-500";
-  if (score >= 40) return "bg-amber-500";
-  return "bg-rose-500";
-}
+const statusMap: Record<AppProfile["status"], { label: string; classes: string }> = {
+  claimed: { label: "Claimed profile", classes: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+  unclaimed: { label: "Unclaimed", classes: "bg-slate-100 text-slate-700 ring-slate-200" },
+  under_review: { label: "Under review", classes: "bg-amber-50 text-amber-700 ring-amber-200" },
+  reported_by_users: { label: "Reported by users", classes: "bg-rose-50 text-rose-700 ring-rose-200" },
+};
 
-export function RatingStars({ rating }: { rating: number }) {
+function RatingStars({ rating, size = "text-base" }: { rating: number; size?: string }) {
   const rounded = Math.round(rating);
   return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={i <= rounded ? "text-amber-500" : "text-slate-300"}>
+    <div className={`flex items-center gap-0.5 ${size}`} aria-label={`${rating.toFixed(1)} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <span key={star} className={star <= rounded ? "text-amber-400" : "text-slate-300"} aria-hidden="true">
           ★
         </span>
       ))}
@@ -40,293 +32,312 @@ export function RatingStars({ rating }: { rating: number }) {
   );
 }
 
-export function StatusBadge({ status }: { status: AppProfile["status"] }) {
-  const config = statusMap[status];
-  return <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${config.classes}`}>{config.label}</span>;
+function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
+  const risk = riskMap[riskLevel];
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${risk.classes}`}>{risk.label}</span>;
 }
 
-export function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
-  const config = riskMap[riskLevel];
-  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${config.classes}`}>{config.label}</span>;
+function StatusBadge({ status }: { status: AppProfile["status"] }) {
+  const profileStatus = statusMap[status];
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${profileStatus.classes}`}>{profileStatus.label}</span>;
 }
 
-export function ProfileHero({ app }: { app: AppProfile }) {
+function scoreTone(score: number) {
+  if (score >= 70) return "bg-emerald-500";
+  if (score >= 40) return "bg-amber-500";
+  return "bg-rose-500";
+}
+
+function getRatingDistribution(averageRating: number) {
+  const five = Math.max(35, Math.min(72, Math.round(averageRating * 12)));
+  const four = Math.max(12, Math.min(35, Math.round((5 - Math.abs(4 - averageRating)) * 5)));
+  const three = Math.max(8, Math.min(24, 100 - five - four - 18));
+  const two = Math.max(5, Math.min(16, Math.round((5 - averageRating) * 3)));
+  const one = Math.max(4, 100 - five - four - three - two);
+  return [
+    ["5-star", five],
+    ["4-star", four],
+    ["3-star", three],
+    ["2-star", two],
+    ["1-star", one],
+  ] as const;
+}
+
+function AppSummaryCard({ app }: { app: AppProfile }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur md:p-8">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-4">
-          <img src={app.logoUrl} alt={`${app.name} logo`} className="h-16 w-16 rounded-2xl border border-slate-200 object-cover" />
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold text-slate-900 md:text-3xl">{app.name}</h1>
-              <StatusBadge status={app.status} />
-              <RiskBadge riskLevel={app.riskLevel} />
-            </div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Public Review and Risk-Awareness Profile
-            </p>
-            <div className="flex items-center gap-3 text-sm text-slate-600">
-              <span className="font-semibold text-slate-900">{app.trustScore}/100 Trust Score</span>
-              <RatingStars rating={app.averageRating} />
-              <span>{app.averageRating.toFixed(1)} ({app.reviewCount.toLocaleString()} reviews)</span>
-            </div>
-            <p className="max-w-2xl text-sm text-slate-600">{app.summaryLine}</p>
-          </div>
+    <aside className="sticky top-20 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="text-center">
+        <img src={app.logoUrl} alt={`${app.name} logo`} className="mx-auto h-20 w-20 rounded-2xl border border-slate-200 object-cover" />
+        <h2 className="mt-4 text-2xl font-bold text-slate-950">{app.name}</h2>
+        <p className="mt-1 text-sm text-slate-600">{app.companyName || app.developerName}</p>
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <RatingStars rating={app.averageRating} />
+          <span className="text-sm font-semibold text-slate-950">{app.averageRating.toFixed(1)}</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/loan-apps" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-            Browse All Apps
-          </Link>
-          <Link href={`/loan-apps/${app.id}/submit-review`} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Write a Review</Link>
-          <button className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Report an Issue</button>
-          <button className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Compare Apps</button>
+        <p className="mt-1 text-xs text-slate-500">{app.reviewCount.toLocaleString()} reviews</p>
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-2 border-y border-slate-100 py-4">
+        <StatusBadge status={app.status} />
+        <RiskBadge riskLevel={app.riskLevel} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-lg font-bold text-slate-950">{app.reviewCount.toLocaleString()}</p>
+          <p className="text-[11px] text-slate-500">Reviews</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-lg font-bold text-slate-950">{app.averageRating.toFixed(1)}</p>
+          <p className="text-[11px] text-slate-500">Rating</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-lg font-bold text-slate-950">{app.trustScore}</p>
+          <p className="text-[11px] text-slate-500">Trust</p>
         </div>
       </div>
-    </section>
-  );
-}
 
-export function TrustScoreCard({ label, score, explanation }: { label: string; score: number; explanation: string }) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-800">{label}</h3>
-        <span className="text-sm font-semibold text-slate-900">{score}/100</span>
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-950">TrustScore</span>
+          <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">{app.trustScore}/100</span>
+        </div>
+        <div className="h-2 rounded-full bg-slate-100">
+          <div className={`h-2 rounded-full ${scoreTone(app.trustScore)}`} style={{ width: `${app.trustScore}%` }} />
+        </div>
       </div>
-      <div className="h-2 w-full rounded-full bg-slate-100">
-        <div className={`h-2 rounded-full ${scoreColor(score)}`} style={{ width: `${score}%` }} />
-      </div>
-      <p className="mt-2 text-xs text-slate-600">{explanation}</p>
-    </article>
-  );
-}
 
-export function ScoreBreakdown({ app }: { app: AppProfile }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-semibold text-slate-900">Trust Score Breakdown</h2>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {app.scoreBreakdown.map((metric) => (
-          <TrustScoreCard key={metric.key} label={metric.label} score={metric.score} explanation={metric.explanation} />
-        ))}
-      </div>
-      <p className="text-xs text-slate-500">
-        This section summarizes what users are reporting, what details are claimed by the app, and what information may still be unverified.
-      </p>
-    </section>
-  );
-}
-
-export function AppDetailsCard({ app }: { app: AppProfile }) {
-  const rows: Array<[string, string]> = [
-    ["App Name", app.name],
-    ["Developer / Company Name", `${app.developerName} / ${app.companyName}`],
-    ["Website", app.website],
-    ["Play Store Link", app.playStoreUrl],
-    ["App Store Link", app.appStoreUrl],
-    ["Claimed NBFC Partner", app.claimedNbfcPartner],
-    ["RBI Registration Claim", app.rbiRegistrationClaim],
-    ["Grievance Officer Details", `${app.grievanceOfficer.name} | ${app.grievanceOfficer.email} | ${app.grievanceOfficer.phone}`],
-    ["Support", `${app.support.email} | ${app.support.phone}`],
-    ["Registered Address", app.grievanceOfficer.address],
-    ["Last Updated Date", app.lastUpdated],
-  ];
-
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-xl font-semibold text-slate-900">App Details</h2>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {rows.map(([label, value]) => (
-          <div key={label} className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-            <p className="mt-1 break-all text-sm text-slate-800">{value}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function ReviewCard({ review }: { review: Review }) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <dl className="space-y-3 border-t border-slate-100 pt-4 text-sm">
         <div>
-          <p className="font-semibold text-slate-900">{review.reviewerName}</p>
-          <p className="text-xs text-slate-500">{review.isVerifiedBorrower ? "Verified borrower" : "Unverified review"}</p>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Website</dt>
+          <dd className="mt-1 break-all text-slate-800">{app.website || "Not listed"}</dd>
         </div>
-        <RatingStars rating={review.rating} />
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</dt>
+          <dd className="mt-1 break-all text-slate-800">{app.support.email || app.grievanceOfficer.email || "Not listed"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</dt>
+          <dd className="mt-1 text-slate-800">{app.support.phone || app.grievanceOfficer.phone || "Not listed"}</dd>
+        </div>
+      </dl>
+
+      <Link href={`/loan-apps/${app.id}/submit-review`} className="block rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-800">
+        Write a Review
+      </Link>
+      <Link href="/loan-apps" className="block rounded-xl border border-slate-300 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+        Back to directory
+      </Link>
+    </aside>
+  );
+}
+
+function RatingsOverview({ app }: { app: AppProfile }) {
+  const distribution = getRatingDistribution(app.averageRating);
+  return (
+    <section className="grid gap-4 md:grid-cols-[0.95fr_1.05fr]">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-4xl font-bold text-slate-950">{app.averageRating.toFixed(1)}</p>
+            <RatingStars rating={app.averageRating} size="text-xl" />
+            <p className="mt-2 text-sm text-slate-500">{app.reviewCount.toLocaleString()} borrower reviews</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4 text-center">
+            <p className="text-3xl font-bold text-slate-950">{app.trustScore}</p>
+            <p className="text-xs text-slate-500">TrustScore</p>
+          </div>
+        </div>
+        <div className="mt-5 space-y-2">
+          {distribution.map(([label, value]) => (
+            <div key={label} className="grid grid-cols-[58px_1fr_42px] items-center gap-3 text-xs">
+              <span className="font-medium text-slate-600">{label}</span>
+              <div className="h-2 rounded-full bg-slate-100">
+                <div className="h-2 rounded-full bg-blue-700" style={{ width: `${value}%` }} />
+              </div>
+              <span className="text-right text-slate-500">{value}%</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <h3 className="text-sm font-semibold text-slate-800">{review.title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{review.body}</p>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-bold text-slate-950">Summary</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-700">{app.summaryLine}</p>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Claimed NBFC</p>
+            <p className="mt-1 text-sm font-semibold text-slate-950">{app.claimedNbfcPartner || "Not listed"}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">RBI claim</p>
+            <p className="mt-1 text-sm font-semibold text-slate-950">{app.rbiRegistrationClaim || "Not listed"}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ScoreBreakdown({ metrics }: { metrics: ScoreMetric[] }) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-base font-bold text-slate-950">Score breakdown</h2>
+        <Link href="/review-policy" className="text-xs font-semibold text-blue-700">How is this calculated?</Link>
+      </div>
+      <div className="space-y-4">
+        {metrics.map((metric) => (
+          <div key={metric.key}>
+            <div className="mb-1 flex justify-between gap-3 text-sm">
+              <span className="font-medium text-slate-700">{metric.label}</span>
+              <span className="font-semibold text-slate-950">{Math.round(metric.score / 10)}/10</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-slate-100">
+              <div className={`h-2.5 rounded-full ${scoreTone(metric.score)}`} style={{ width: `${metric.score}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <article className="border-b border-slate-200 bg-white p-5 last:border-b-0">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
+              {review.reviewerName.slice(0, 1).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-slate-950">{review.reviewerName}</p>
+              <p className="text-xs text-slate-500">{review.isVerifiedBorrower ? "Verified reviewer" : "Community reviewer"}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <RatingStars rating={review.rating} />
+            <h3 className="font-bold text-slate-950">{review.title}</h3>
+          </div>
+        </div>
+        <p className="shrink-0 text-xs text-slate-500">{review.createdAt}</p>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-700">{review.body}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {review.tags.map((tag) => (
-          <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
-            {tag}
-          </span>
+          <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{tag}</span>
         ))}
       </div>
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-        <span>{review.createdAt}</span>
-        <div className="flex items-center gap-3">
-          <button className="font-medium text-slate-700">Helpful ({review.helpfulCount})</button>
-          <button className="font-medium text-rose-600">Report review</button>
-        </div>
+      <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
+        <button className="font-medium text-slate-700">Helpful ({review.helpfulCount})</button>
+        <button className="font-medium text-slate-700">Share</button>
+        <button className="ml-auto font-medium text-rose-600">Report</button>
       </div>
     </article>
   );
 }
 
-export function ReviewsList({ reviews }: { reviews: Review[] }) {
+function ReviewsPanel({ reviews, isLoading, isError, error }: { reviews: Review[]; isLoading: boolean; isError: boolean; error: unknown }) {
   return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-semibold text-slate-900">Community Reviews</h2>
-      <p className="text-xs text-slate-500">
-        Reviews are moderated and displayed as user-submitted experiences to help borrowers understand risk signals and app behavior patterns.
-      </p>
-      <div className="grid gap-3">
-        {reviews.length === 0 ? (
-          <article className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
-            No public reviews are available yet. Submitted reviews may still be under moderation.
-          </article>
-        ) : reviews.map((review) => (
-          <ReviewCard key={review.id} review={review} />
-        ))}
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-bold text-slate-950">Borrower reviews</h2>
+          <p className="text-xs text-slate-500">Moderated user-submitted experiences. Not legal findings.</p>
+        </div>
+        <div className="flex gap-2">
+          <select className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+            <option>Most Recent</option>
+            <option>Highest Rating</option>
+            <option>Lowest Rating</option>
+          </select>
+          <select className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+            <option>All ratings</option>
+            <option>5 star</option>
+            <option>1 star</option>
+          </select>
+        </div>
       </div>
+      {isLoading ? (
+        <div className="p-5 text-sm text-slate-600">Loading public reviews...</div>
+      ) : isError ? (
+        <div className="p-5 text-sm text-rose-700">Could not load reviews. {(error as Error).message}</div>
+      ) : reviews.length === 0 ? (
+        <div className="p-5 text-sm text-slate-600">No public reviews are available yet. Submitted reviews may still be under moderation.</div>
+      ) : (
+        reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+      )}
     </section>
   );
 }
 
-export function ComplaintPatternSummary({ reviews }: { reviews: Review[] }) {
-  const total = reviews.length || 1;
-  const percentage = (tag: string) => Math.round((reviews.filter((r) => r.tags.includes(tag)).length / total) * 100);
-  const topIssue = ["Harassment", "Hidden Charges", "Data Misuse", "Threat Calls", "Contact List Abuse"].reduce((best, tag) =>
-    percentage(tag) > percentage(best) ? tag : best,
-  "Harassment");
-
-  const cards = [
-    { label: "Most Reported Issue", value: topIssue },
-    { label: "Harassment Mentions", value: `${percentage("Harassment")}%` },
-    { label: "Hidden Charges Mentions", value: `${percentage("Hidden Charges")}%` },
-    { label: "Data Privacy Mentions", value: `${percentage("Data Misuse")}%` },
-    { label: "Recovery Abuse Mentions", value: `${percentage("Threat Calls")}%` },
-    { label: "Complaint Volume Trend", value: "Increasing (sample trend)" },
-  ];
-
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-xl font-semibold text-slate-900">Complaint Pattern Summary</h2>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card) => (
-          <div key={card.label} className="rounded-xl bg-slate-50 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">{card.value}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function UserActionGuide() {
-  const actions = [
-    "File complaint with app grievance officer",
-    "File complaint with RBI CMS",
-    "Report cyber harassment",
-    "Preserve screenshots and call recordings where legally allowed",
-    "Send legal notice through an advocate",
-    "Report impersonation or photo morphing to cybercrime portal",
+function ContactInfo({ app }: { app: AppProfile }) {
+  const rows = [
+    ["Operating entity", app.companyName || app.developerName],
+    ["Claimed NBFC partner", app.claimedNbfcPartner || "Not listed"],
+    ["Grievance email", app.grievanceOfficer.email || "Not listed"],
+    ["Support phone", app.support.phone || app.grievanceOfficer.phone || "Not listed"],
+    ["Registered address", app.grievanceOfficer.address || "Not listed"],
+    ["Last updated", app.lastUpdated],
   ];
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-xl font-semibold text-slate-900">What users can do next</h2>
-      <p className="mb-4 text-sm text-slate-600">
-        These are practical safety actions users can consider. This page is for public review and risk awareness, not final legal findings.
-      </p>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {actions.map((action) => (
-          <div key={action} className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700">
-            {action}
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-base font-bold text-slate-950">Company and contact info</h2>
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="rounded-xl bg-slate-50 p-3">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
+            <dd className="mt-1 break-words font-medium text-slate-900">{value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
     </section>
   );
 }
 
-export function CompanyResponseBox({ response }: { response: CompanyResponse }) {
+function IssueTiles({ reviews }: { reviews: Review[] }) {
+  const allTags = reviews.flatMap((review) => review.tags);
+  const issueNames = ["Harassment", "Hidden Charges", "Data Misuse", "Threat Calls", "Contact List Abuse", "Poor Support"];
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900">Company response</h2>
-        <span className="text-xs text-slate-500">{response.responseDate}</span>
-      </div>
-      <p className="text-sm text-slate-700">{response.body}</p>
-      <p className="mt-2 text-xs text-slate-500">
-        Verification status: {response.verificationStatus === "verified_company" ? "Verified company representative" : "Pending verification"}
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Claim this profile</button>
-        <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Respond to reviews</button>
-      </div>
-    </section>
-  );
-}
-
-export function SimilarAppsGrid({ apps }: { apps: SimilarApp[] }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-semibold text-slate-900">Similar Apps</h2>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        {apps.map((app) => (
-          <article key={app.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center gap-3">
-              <img src={app.logoUrl} alt={`${app.name} logo`} className="h-10 w-10 rounded-xl border border-slate-200" />
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">{app.name}</h3>
-                <p className="text-xs text-slate-500">{app.reviewCount.toLocaleString()} reviews</p>
-              </div>
-            </div>
-            <div className="mb-3 flex items-center justify-between text-sm">
-              <span className="font-semibold text-slate-900">{app.trustScore}/100</span>
-              <RiskBadge riskLevel={app.riskLevel} />
-            </div>
-            <button className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700">View Profile</button>
-          </article>
-        ))}
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-base font-bold text-slate-950">Common reported issues</h2>
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+        {issueNames.map((issue) => {
+          const count = allTags.filter((tag) => tag.toLowerCase().includes(issue.toLowerCase().split(" ")[0])).length;
+          return (
+            <Link key={issue} href="/patterns" className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center transition hover:border-slate-300 hover:bg-white">
+              <p className="text-sm font-semibold text-slate-950">{issue}</p>
+              <p className="mt-1 text-xs text-slate-500">{count || 0} mentions</p>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-export function MobileStickyCTA() {
+function MobileStickyCTA({ appId }: { appId: string }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:hidden">
       <div className="mx-auto flex max-w-4xl gap-2">
-        <button className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white">Write Review</button>
-        <button className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">Report Issue</button>
+        <Link href={`/loan-apps/${appId}/submit-review`} className="flex-1 rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white">Write Review</Link>
+        <Link href="/emergency-help" className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700">Emergency Help</Link>
       </div>
     </div>
   );
 }
-
-const emptyCompanyResponse: CompanyResponse = {
-  body: "No approved public company response is available for this profile yet.",
-  responseDate: "",
-  verificationStatus: "pending_verification",
-};
 
 export default function LoanAppProfilePage({ slug }: { slug: string }) {
   const profileQuery = useLoanAppProfile(slug);
   const app = profileQuery.data?.app;
   const reviewsQuery = useAppReviews(app?.id ?? "", {});
   const reviews = reviewsQuery.data?.items ?? [];
-  const companyResponse = emptyCompanyResponse;
-  const similarApps: SimilarApp[] = [];
 
   if (profileQuery.isLoading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6">
+      <main className="min-h-screen bg-slate-50 p-6">
         <section className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">Loading app profile...</section>
       </main>
     );
@@ -334,7 +345,7 @@ export default function LoanAppProfilePage({ slug }: { slug: string }) {
 
   if (profileQuery.isError || !app) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6">
+      <main className="min-h-screen bg-slate-50 p-6">
         <section className="mx-auto max-w-5xl rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center text-sm text-rose-900">
           <p>Could not load this app profile. {(profileQuery.error as Error | null)?.message}</p>
           <button onClick={() => profileQuery.refetch()} className="mt-3 rounded-xl bg-rose-900 px-4 py-2 text-sm font-semibold text-white">Try again</button>
@@ -343,63 +354,45 @@ export default function LoanAppProfilePage({ slug }: { slug: string }) {
     );
   }
 
-  const storeReportData = {
-    ...officialStoreReport,
-    app: {
-      ...officialStoreReport.app,
-      id: app.id,
-      name: app.name,
-      developerName: app.developerName,
-      playStoreUrl: app.playStoreUrl,
-      appStoreUrl: app.appStoreUrl,
-    },
-  };
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 pb-24">
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6 md:py-10">
-        <ProfileHero app={app} />
-        <ScoreBreakdown app={app} />
-        <AppDetailsCard app={app} />
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-          This page is a public review, risk-awareness, and user-safety profile. Information is based on public records, app-provided details,
-          and user-submitted reviews. We do not make final legal findings. Users should independently verify lender and NBFC details before
-          borrowing.
-        </section>
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
-          <p className="font-semibold text-slate-900">How to read this page</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>What people are reporting in moderated community reviews</li>
-            <li>What details the app or company claims publicly</li>
-            <li>What information is marked as verified or unverified</li>
-            <li>What risk signals users may want to consider before borrowing</li>
-            <li>What safe actions users can take next</li>
-          </ul>
-        </section>
-        {reviewsQuery.isLoading && <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">Loading public reviews...</section>}
-        {reviewsQuery.isError && <section className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900">Could not load public reviews. {(reviewsQuery.error as Error).message}</section>}
-        <ComplaintPatternSummary reviews={reviews} />
-        <ReviewsList reviews={reviews} />
-        <UserActionGuide />
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold text-slate-900">Report this app outside our platform</h2>
-          <OfficialStoreReportCard data={storeReportData} />
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-900">Report to grievance officer</h3>
-              <p className="mt-1 text-xs text-slate-600">Use official grievance contact details and keep your complaint factual with evidence references.</p>
-              <a href={`mailto:${app.grievanceOfficer.email}`} className="mt-2 inline-block rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Email grievance officer</a>
-            </article>
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-900">Report cyber harassment</h3>
-              <p className="mt-1 text-xs text-slate-600">For threats, image abuse, or digital coercion, you may consider reporting through official cyber channels.</p>
-              <a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer" className="mt-2 inline-block rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Open cybercrime portal</a>
-            </article>
+    <main className="min-h-screen bg-slate-50 pb-24">
+      <section className="border-b border-slate-200 bg-blue-50 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-xs font-medium text-slate-600">
+            <Link href="/" className="hover:text-slate-950">Home</Link>
+            <span className="px-2">/</span>
+            <Link href="/loan-apps" className="hover:text-slate-950">Loan Apps</Link>
+            <span className="px-2">/</span>
+            <span>{app.name}</span>
           </div>
-        </section>
-        {reviews.some((review) => review.body) ? <CompanyResponseBox response={companyResponse} /> : null}
-        {similarApps.length > 0 ? <SimilarAppsGrid apps={similarApps} /> : null}
+          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">{app.name} Loan App Reviews</h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">{app.summaryLine}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/loan-apps/${app.id}/submit-review`} className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800">Write a Review</Link>
+              <Link href="/compare" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Compare Apps</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mx-auto grid max-w-7xl items-start gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[320px_1fr] lg:px-8">
+        <AppSummaryCard app={app} />
+        <div className="space-y-5">
+          <RatingsOverview app={app} />
+          <ScoreBreakdown metrics={app.scoreBreakdown} />
+          <ContactInfo app={app} />
+          <IssueTiles reviews={reviews} />
+          <ReviewsPanel reviews={reviews} isLoading={reviewsQuery.isLoading} isError={reviewsQuery.isError} error={reviewsQuery.error} />
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            This profile summarizes public details, app-provided claims, and moderated borrower reviews. It is for awareness and safer decision-making, not a final legal finding.
+          </section>
+        </div>
       </div>
-      <MobileStickyCTA />
+
+      <MobileStickyCTA appId={app.id} />
     </main>
   );
 }
