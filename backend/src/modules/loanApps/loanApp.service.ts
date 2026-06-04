@@ -19,8 +19,8 @@ export const loanAppService = {
     return paginatedResponse(items, total, pagination.page, pagination.limit);
   },
 
-  async getProfile(slug: string) {
-    const app = await loanAppRepository.findBySlug(slug);
+  async getProfile(slugOrId: string) {
+    const app = await loanAppRepository.findBySlug(slugOrId) ?? await loanAppRepository.findById(slugOrId);
     if (!app) {
       throw new AppError("Loan app not found", 404);
     }

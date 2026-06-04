@@ -617,7 +617,7 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
                 </div>
               )}
               <p className="text-xs">Status: submitted for moderation. It will not appear publicly until approved.</p>
-              <Link href={`/loan-apps/${appContext.appId}/submit-review/success`} className="inline-block rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
+              <Link href={`${appContext.profileUrl}/submit-review/success`} className="inline-block rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
                 Open submit review success page
               </Link>
             </div>

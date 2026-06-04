@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { HarassmentCase } from "@/types/harassmentCase";
+import type { ApiLoanApp, PaginatedResponse } from "@/types/apiDtos";
+import type { HarassmentCase, HarassmentCaseInput } from "@/types/harassmentCase";
 
 const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "demo-user";
 
@@ -12,18 +13,34 @@ export function useCases() {
   return useQuery({ queryKey: ["cases"], queryFn: () => apiClient<HarassmentCase[]>("/api/me/cases", auth) });
 }
 
+export function useCaseLoanAppOptions() {
+  return useQuery({
+    queryKey: ["caseLoanAppOptions"],
+    queryFn: async () => {
+      const response = await apiClient<PaginatedResponse<ApiLoanApp>>("/api/apps?limit=100");
+      return response.items.map((app) => ({
+        id: app.id,
+        slug: app.slug,
+        name: app.name,
+        developerName: app.developerName,
+        companyName: app.companyName,
+      }));
+    },
+  });
+}
+
 export function useCaseDetail(caseId: string) {
   return useQuery({ queryKey: ["case", caseId], enabled: Boolean(caseId), queryFn: () => apiClient<HarassmentCase>(`/api/me/cases/${caseId}`, auth) });
 }
 
 export function useCreateCase() {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (body: { title: string; caseType: string; summary?: string }) => apiClient<HarassmentCase>("/api/me/cases", { ...auth, method: "POST", body }), onSuccess: () => void qc.invalidateQueries({ queryKey: ["cases"] }) });
+  return useMutation({ mutationFn: (body: HarassmentCaseInput) => apiClient<HarassmentCase>("/api/me/cases", { ...auth, method: "POST", body }), onSuccess: () => void qc.invalidateQueries({ queryKey: ["cases"] }) });
 }
 
 export function useUpdateCase(caseId: string) {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (body: Record<string, unknown>) => apiClient<HarassmentCase>(`/api/me/cases/${caseId}`, { ...auth, method: "PATCH", body }), onSuccess: () => { void qc.invalidateQueries({ queryKey: ["cases"] }); void qc.invalidateQueries({ queryKey: ["case", caseId] }); } });
+  return useMutation({ mutationFn: (body: Partial<HarassmentCaseInput>) => apiClient<HarassmentCase>(`/api/me/cases/${caseId}`, { ...auth, method: "PATCH", body }), onSuccess: () => { void qc.invalidateQueries({ queryKey: ["cases"] }); void qc.invalidateQueries({ queryKey: ["case", caseId] }); } });
 }
 
 export function useArchiveCase(caseId: string) {

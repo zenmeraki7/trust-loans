@@ -4,7 +4,7 @@ import { z } from "zod";
 export const safetyScanSchema = z.object({
   body: z.object({
     title: z.string().trim().max(160).default(""),
-    body: z.string().trim().min(1).max(5000),
+    body: z.string().trim().max(5000).default(""),
     tags: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
     reviewType: z.nativeEnum(ReviewType).optional(),
   }),

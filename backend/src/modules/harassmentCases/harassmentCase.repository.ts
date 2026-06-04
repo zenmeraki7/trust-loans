@@ -3,7 +3,15 @@ import type { CreateCaseInput, UpdateCaseInput } from "./harassmentCase.validato
 
 export const harassmentCaseRepository = {
   create(userId: string, input: CreateCaseInput) {
-    return prisma.harassmentCase.create({ data: { ...input, userId, linkedEvidenceFileIds: [], linkedComplaintDraftIds: [] } });
+    const data = normalizeCaseInput(input);
+    return prisma.harassmentCase.create({
+      data: {
+        ...data,
+        userId,
+        linkedEvidenceFileIds: data.linkedEvidenceFileIds ?? [],
+        linkedComplaintDraftIds: data.linkedComplaintDraftIds ?? [],
+      },
+    });
   },
   listByUser(userId: string) {
     return prisma.harassmentCase.findMany({ where: { userId }, include: { timelineItems: true, checklistItems: true, externalComplaints: true }, orderBy: { updatedAt: "desc" } });
@@ -12,7 +20,7 @@ export const harassmentCaseRepository = {
     return prisma.harassmentCase.findFirst({ where: { id: caseId, userId }, include: { timelineItems: true, checklistItems: true, externalComplaints: true } });
   },
   updateById(caseId: string, input: UpdateCaseInput) {
-    return prisma.harassmentCase.update({ where: { id: caseId }, data: input });
+    return prisma.harassmentCase.update({ where: { id: caseId }, data: normalizeCaseInput(input) });
   },
   archive(caseId: string) {
     return prisma.harassmentCase.update({ where: { id: caseId }, data: { status: "ARCHIVED" } });
@@ -31,4 +39,14 @@ export const harassmentCaseRepository = {
   updateExternalComplaint(complaintId: string, input: Record<string, unknown>) { return prisma.externalComplaint.update({ where: { id: complaintId }, data: input }); },
   deleteExternalComplaint(complaintId: string) { return prisma.externalComplaint.delete({ where: { id: complaintId } }); },
   updateLinks(caseId: string, data: Record<string, unknown>) { return prisma.harassmentCase.update({ where: { id: caseId }, data }); },
+  async loanAppExists(loanAppId: string) {
+    const count = await prisma.loanApp.count({ where: { id: loanAppId } });
+    return count > 0;
+  },
 };
+
+function normalizeCaseInput<T extends CreateCaseInput | UpdateCaseInput>(input: T): T {
+  return Object.fromEntries(
+    Object.entries(input).filter(([key, value]) => !(key === "loanAppId" && value === "")),
+  ) as T;
+}

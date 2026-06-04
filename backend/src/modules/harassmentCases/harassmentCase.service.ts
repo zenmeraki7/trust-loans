@@ -33,6 +33,7 @@ const defaultChecklistByType: Partial<Record<HarassmentCaseType, Array<{ label: 
 
 export const harassmentCaseService = {
   async create(userId: string, input: CreateCaseInput) {
+    await assertLoanAppExists(input.loanAppId);
     const created = await harassmentCaseRepository.create(userId, input);
     const checklist = defaultChecklistByType[input.caseType as HarassmentCaseType] ?? [];
     for (const item of checklist) {
@@ -49,6 +50,7 @@ export const harassmentCaseService = {
   },
   async update(userId: string, caseId: string, input: UpdateCaseInput) {
     await this.get(userId, caseId);
+    await assertLoanAppExists(input.loanAppId);
     const updated = await harassmentCaseRepository.updateById(caseId, input);
     await auditLog({ actorId: userId, action: "case.update", targetType: "HarassmentCase", targetId: caseId });
     return updated;
@@ -89,3 +91,11 @@ export const harassmentCaseService = {
     return harassmentCaseRepository.updateLinks(caseId, { linkedComplaintDraftIds: [...existing.linkedComplaintDraftIds, draftId] });
   },
 };
+
+async function assertLoanAppExists(loanAppId?: string | null) {
+  if (!loanAppId) return;
+  const exists = await harassmentCaseRepository.loanAppExists(loanAppId);
+  if (!exists) {
+    throw new AppError("Loan app ID was not found. Leave it blank or use a valid internal loan app ID.", 400);
+  }
+}

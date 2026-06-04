@@ -9,11 +9,16 @@ export const createCaseSchema = z.object({
   body: z.object({
     title: z.string().trim().min(2).max(160),
     caseType: z.nativeEnum(HarassmentCaseType),
+    status: z.nativeEnum(HarassmentCaseStatus).optional(),
     loanAppId: z.string().optional(),
     summary: z.string().max(2000).optional(),
     incidentDate: z.coerce.date().optional(),
     loanReferenceId: z.string().max(120).optional(),
     loanAmountRange: z.string().max(120).optional(),
+    decisionTreeSessionId: z.string().max(160).optional(),
+    linkedReviewId: z.string().max(160).optional(),
+    linkedEvidenceFileIds: z.array(z.string().min(1)).optional(),
+    linkedComplaintDraftIds: z.array(z.string().min(1)).optional(),
     priority: z.nativeEnum(CasePriority).optional(),
   }),
 });
@@ -22,12 +27,18 @@ export const updateCaseSchema = z.object({
   params: z.object({ caseId: z.string().min(1) }),
   body: z.object({
     title: z.string().trim().min(2).max(160).optional(),
+    caseType: z.nativeEnum(HarassmentCaseType).optional(),
     status: z.nativeEnum(HarassmentCaseStatus).optional(),
     priority: z.nativeEnum(CasePriority).optional(),
+    loanAppId: z.string().nullable().optional(),
     summary: z.string().max(2000).optional(),
     incidentDate: z.coerce.date().optional(),
     loanReferenceId: z.string().max(120).optional(),
     loanAmountRange: z.string().max(120).optional(),
+    decisionTreeSessionId: z.string().max(160).optional(),
+    linkedReviewId: z.string().max(160).optional(),
+    linkedEvidenceFileIds: z.array(z.string().min(1)).optional(),
+    linkedComplaintDraftIds: z.array(z.string().min(1)).optional(),
   }),
 });
 

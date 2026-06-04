@@ -19,3 +19,19 @@ export type HarassmentCase = {
   externalComplaints: Array<{ id: string; channel: string; complaintNumber?: string | null; submittedAt?: string | null; status: string; notes?: string | null }>;
   updatedAt: string;
 };
+
+export type HarassmentCaseInput = {
+  title: string;
+  caseType: string;
+  status?: string;
+  priority?: string;
+  loanAppId?: string | null;
+  summary?: string;
+  incidentDate?: string;
+  loanReferenceId?: string;
+  loanAmountRange?: string;
+  decisionTreeSessionId?: string;
+  linkedReviewId?: string;
+  linkedEvidenceFileIds?: string[];
+  linkedComplaintDraftIds?: string[];
+};

@@ -41,7 +41,7 @@ export const loanAppRepository = {
   },
 
   findById(id: string) {
-    return prisma.loanApp.findUnique({ where: { id } });
+    return prisma.loanApp.findUnique({ where: { id }, include: { complaintSummaries: true } });
   },
 
   findPublishedReviewsByAppId(input: { appId: string; skip: number; take: number }) {

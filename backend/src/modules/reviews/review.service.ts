@@ -6,12 +6,12 @@ import type { CreateReviewInput, ReportReviewInput } from "./review.validators.j
 
 export const reviewService = {
   async createReview(input: CreateReviewInput) {
-    const app = await loanAppRepository.findById(input.loanAppId);
+    const app = await loanAppRepository.findById(input.loanAppId) ?? await loanAppRepository.findBySlug(input.loanAppId);
     if (!app) {
       throw new AppError("Loan app not found", 404);
     }
 
-    const review = await reviewRepository.create(input);
+    const review = await reviewRepository.create({ ...input, loanAppId: app.id });
     await auditLog({
       actorId: input.userId,
       action: "review.submitted",
