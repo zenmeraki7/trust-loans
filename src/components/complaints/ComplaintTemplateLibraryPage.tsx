@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useComplaintTemplates } from "@/hooks/useComplaintTemplates";
+import SavedDraftsSection from "./SavedDraftsSection";
 
 export default function ComplaintTemplateLibraryPage() {
   const templatesQuery = useComplaintTemplates();
@@ -31,6 +32,7 @@ export default function ComplaintTemplateLibraryPage() {
           </article>
         ))}
       </section>
+      <SavedDraftsSection />
     </main>
   );
 }
