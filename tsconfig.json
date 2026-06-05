@@ -29,13 +29,13 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-stable/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "src/**/*.ts",
+  "src/**/*.tsx",
+  ".next/types/**/*.ts",
+  "next-env.d.ts"
+],
+"exclude": [
+  "node_modules",
+  "backend"
+]
 }
