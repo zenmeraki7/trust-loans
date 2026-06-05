@@ -140,7 +140,7 @@ export default function MainNavigation() {
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-900/[0.03] backdrop-blur supports-[backdrop-filter]:bg-white/85">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="group flex min-w-0 items-center gap-3 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+          <Link href="/" onClick={() => setDirectoryOpen(false)} className="group flex min-w-0 items-center gap-3 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
               TL
             </span>
@@ -160,6 +160,7 @@ export default function MainNavigation() {
             <Link
               href="/admin/apps"
               aria-current={isActivePath(pathname, "/admin") ? "page" : undefined}
+              onClick={() => setDirectoryOpen(false)}
               className={`rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 ${
                 isActivePath(pathname, "/admin") ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
               }`}
@@ -210,6 +211,7 @@ export default function MainNavigation() {
                       key={link.href}
                       href={link.href}
                       aria-current={isActivePath(pathname, link.href) ? "page" : undefined}
+                      onClick={() => setDirectoryOpen(false)}
                       className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200 ${
                         isActivePath(pathname, link.href) ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
                       }`}

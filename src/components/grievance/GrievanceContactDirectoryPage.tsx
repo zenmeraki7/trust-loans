@@ -144,7 +144,7 @@ export function GrievanceContactCard({ contact }: { contact: GrievanceDirectoryD
           <a href={contact.profileUrl} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-700">
             View Profile
           </a>
-          <a href="/corrections" className={`rounded-md px-3 py-1.5 text-xs font-semibold text-white transition ${contact.verificationStatus === "conflicting_information" ? "bg-red-600 hover:bg-red-700" : "bg-blue-700 hover:bg-blue-800"}`}>
+          <a href="/complaint-templates/grievance_officer_escalation" className={`rounded-md px-3 py-1.5 text-xs font-semibold text-white transition ${contact.verificationStatus === "conflicting_information" ? "bg-red-600 hover:bg-red-700" : "bg-blue-700 hover:bg-blue-800"}`}>
             File Grievance
           </a>
         </div>
