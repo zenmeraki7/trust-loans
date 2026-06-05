@@ -1,3 +1,4 @@
+//src/app/entities/[slug]/page.tsx
 import CompanyNbfcProfileRoute from "@/components/entities/CompanyNbfcProfileRoute";
 
 type Props = { params: Promise<{ slug: string }> };

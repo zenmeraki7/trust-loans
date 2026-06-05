@@ -1,3 +1,4 @@
+//src/app/components/entities/CompanyNbfcProfilePage.tsx
 import Link from "next/link";
 import type { EntityProfileData } from "@/types/entityProfile";
 
