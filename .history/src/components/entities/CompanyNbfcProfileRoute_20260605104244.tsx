@@ -1,4 +1,4 @@
-//app/components/entities/CompanyNbfcProfileRoute.tsx
+//app/
 "use client";
 
 import CompanyNbfcProfilePage from "@/components/entities/CompanyNbfcProfilePage";

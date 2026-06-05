@@ -1,4 +1,4 @@
-//src/app/components/entities/CompanyNbfcDirectoryPage.tsx
+//src/app/
 "use client";
 
 import Link from "next/link";
