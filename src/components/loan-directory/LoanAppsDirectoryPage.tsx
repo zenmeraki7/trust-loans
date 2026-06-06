@@ -104,6 +104,11 @@ export function DirectoryHeroSearch({
               Search
             </button>
           </div>
+          <div className="mt-3">
+            <Link href="/admin/apps" className="inline-flex rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50">
+              Add loan app
+            </Link>
+          </div>
           <div className="mt-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Popular searches</p>
             <div className="mt-2 flex flex-wrap gap-2">
