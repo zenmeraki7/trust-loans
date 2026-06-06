@@ -179,10 +179,7 @@ function CreateLoanAppPanel({
         </p>
       )}
 
-      <div className="mt-4 space-y-3">
-
-        {/* Row 1: App name + Play Store URL */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
               App name <span className="text-rose-500">*</span>
@@ -205,10 +202,7 @@ function CreateLoanAppPanel({
               placeholder="https://play.google.com/store/apps/details?id=..."
             />
           </div>
-        </div>
 
-        {/* Row 2: Logo URL + Claimed NBFC */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Logo URL</label>
             <input
@@ -217,7 +211,10 @@ function CreateLoanAppPanel({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               placeholder="https://example.com/logo.png"
             />
-            <label className="mt-2 block">
+            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
+          </div>
+          <div>
+            <label className="block">
               <span className="mb-1 block text-xs font-medium text-slate-500">Or upload logo image</span>
               <input
                 type="file"
@@ -226,7 +223,6 @@ function CreateLoanAppPanel({
                 className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
               />
             </label>
-            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Claimed NBFC partner</label>
@@ -237,10 +233,7 @@ function CreateLoanAppPanel({
               placeholder="e.g. ABC Finance Ltd"
             />
           </div>
-        </div>
 
-        {/* Row 3: Grievance email + Support email */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Grievance email</label>
             <input
@@ -261,10 +254,7 @@ function CreateLoanAppPanel({
               placeholder="support@company.com"
             />
           </div>
-        </div>
 
-        {/* Row 4: Support phone */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Support phone</label>
             <input
@@ -275,11 +265,10 @@ function CreateLoanAppPanel({
               placeholder="+91 XXXXX XXXXX"
             />
           </div>
-        </div>
 
         {/* Auto-generated slug preview */}
         {form.name && (
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 md:col-span-2">
             Slug: <span className="font-mono text-slate-600">{form.slug || slugFromName(form.name)}</span>
             <span className="ml-2 text-slate-400">(auto-generated, edit if needed)</span>
           </p>
