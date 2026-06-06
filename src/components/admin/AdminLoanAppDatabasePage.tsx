@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { type ChangeEvent, type ClipboardEvent, FormEvent, useState } from "react";
 import type { CreateAdminLoanAppInput } from "@/hooks/useAdminDashboards";
 import type {
   AdminLoanAppDatabase,
@@ -159,6 +159,18 @@ function CreateLoanAppPanel({
     update("logoUrl", await readImageAsDataUrl(file));
   };
 
+  const updateLogoPaste = async (event: ClipboardEvent<HTMLInputElement>) => {
+    const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith("image/"));
+    if (!file) return;
+    event.preventDefault();
+    await updateLogoFile(file);
+  };
+
+  const updateLogoChoice = async (event: ChangeEvent<HTMLInputElement>) => {
+    await updateLogoFile(event.target.files?.[0]);
+    event.target.value = "";
+  };
+
   return (
     <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -204,25 +216,21 @@ function CreateLoanAppPanel({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Logo URL</label>
-            <input
-              value={form.logoUrl}
-              onChange={(e) => update("logoUrl", e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              placeholder="https://example.com/logo.png"
-            />
-            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
-          </div>
-          <div>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-500">Or upload logo image</span>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Logo URL or image</label>
+            <div className="flex overflow-hidden rounded-lg border border-slate-300 bg-white">
               <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => void updateLogoFile(e.target.files?.[0])}
-                className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+                value={form.logoUrl}
+                onChange={(e) => update("logoUrl", e.target.value)}
+                onPaste={(e) => void updateLogoPaste(e)}
+                className="min-w-0 flex-1 px-3 py-2 text-sm outline-none"
+                placeholder="Paste URL or choose image"
               />
-            </label>
+              <label className="shrink-0 cursor-pointer border-l border-slate-300 bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+                Choose image
+                <input type="file" accept="image/*" onChange={(e) => void updateLogoChoice(e)} className="sr-only" />
+              </label>
+            </div>
+            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Claimed NBFC partner</label>

@@ -2,7 +2,7 @@
 
 //src/app/components/entities/CompanyNbfcProfilePage.tsx
 import Link from "next/link";
-import { type FormEvent, useState } from "react";
+import { type ChangeEvent, type ClipboardEvent, type FormEvent, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import type { EntityProfileData } from "@/types/entityProfile";
 
@@ -276,6 +276,18 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
     update("logoUrl", await readImageAsDataUrl(file));
   };
 
+  const updateLogoPaste = async (event: ClipboardEvent<HTMLInputElement>) => {
+    const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith("image/"));
+    if (!file) return;
+    event.preventDefault();
+    await updateLogoFile(file);
+  };
+
+  const updateLogoChoice = async (event: ChangeEvent<HTMLInputElement>) => {
+    await updateLogoFile(event.target.files?.[0]);
+    event.target.value = "";
+  };
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
@@ -321,16 +333,20 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
             <h3 className="text-sm font-semibold text-slate-800">Basic Info</h3>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
-                <TextInput label="Logo URL" value={form.logoUrl} onChange={(value) => update("logoUrl", value)} placeholder="https://example.com/logo.png" />
-                <label className="mt-2 block">
-                  <span className="mb-1 block text-xs font-medium text-slate-500">Or upload logo image</span>
+                <span className="mb-1 block text-xs font-medium text-slate-600">Logo URL or image</span>
+                <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-[#1746A2]">
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => void updateLogoFile(event.target.files?.[0])}
-                    className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+                    value={form.logoUrl}
+                    onChange={(event) => update("logoUrl", event.target.value)}
+                    onPaste={(event) => void updateLogoPaste(event)}
+                    placeholder="Paste URL or choose image"
+                    className="min-w-0 flex-1 px-3 py-2 text-sm outline-none"
                   />
-                </label>
+                  <label className="shrink-0 cursor-pointer border-l border-slate-300 bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+                    Choose image
+                    <input type="file" accept="image/*" onChange={(event) => void updateLogoChoice(event)} className="sr-only" />
+                  </label>
+                </div>
                 {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
               </div>
               <TextInput label="Official website" value={form.officialWebsite} onChange={(value) => update("officialWebsite", value)} placeholder="https://company.com" />
