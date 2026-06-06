@@ -81,6 +81,30 @@ function slugFromName(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+function normalizeUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function isPlayStoreUrl(value: string) {
+  try {
+    return new URL(value).hostname.toLowerCase().includes("play.google.com");
+  } catch {
+    return false;
+  }
+}
+
+function getApiValidationMessage(error: unknown) {
+  const details = (error as { details?: { issues?: Array<{ path?: Array<string | number>; message?: string }> } })?.details;
+  const issue = details?.issues?.[0];
+  if (issue?.message) {
+    const field = issue.path?.slice(1).join(".");
+    return field ? `${field}: ${issue.message}` : issue.message;
+  }
+  return error instanceof Error ? error.message : "Could not create loan app.";
+}
+
 function readImageAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -109,40 +133,54 @@ function CreateLoanAppPanel({
     setForm((current) => ({
       ...current,
       [field]: value,
-      ...(field === "name" && !current.slug ? { slug: slugFromName(value) } : {}),
+      ...(field === "name" ? { slug: slugFromName(value) } : {}),
     }));
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLocalError("");
+    const generatedSlug = slugFromName(form.name);
     if (!form.name) {
       setLocalError("App name is required.");
       return;
     }
-    if (!form.playStoreUrl) {
-      setLocalError("Play Store URL is required.");
+    if (generatedSlug.length < 2) {
+      setLocalError("App name must generate a slug with at least 2 characters.");
       return;
     }
-    await onCreate({
-      slug: form.slug || slugFromName(form.name),
-      name: form.name,
-      logoUrl: form.logoUrl,
-      playStoreUrl: form.playStoreUrl,
-      claimedNbfcPartner: form.claimedNbfcPartner,
-      grievanceEmail: form.grievanceEmail,
-      supportEmail: form.supportEmail,
-      supportPhone: form.supportPhone,
-      status: "PUBLISHED",
-      verificationStatus: "UNDER_VERIFICATION",
-      claimStatus: "UNCLAIMED",
-      riskLevel: "UNDER_REVIEW",
-      trustScore: 50,
-      averageRating: 0,
-      reviewCount: 0,
-    });
-    setCreatedSlug(form.slug || slugFromName(form.name));
-    setForm(defaultCreateForm);
+    if (!form.playStoreUrl) {
+      setLocalError("Play Store or website URL is required.");
+      return;
+    }
+    const appUrl = normalizeUrl(form.playStoreUrl);
+    if (!appUrl) {
+      setLocalError("Play Store or website URL is required.");
+      return;
+    }
+    try {
+      await onCreate({
+        slug: generatedSlug,
+        name: form.name.trim(),
+        ...(form.logoUrl.trim() ? { logoUrl: form.logoUrl.trim() } : {}),
+        ...(isPlayStoreUrl(appUrl) ? { playStoreUrl: appUrl } : { websiteUrl: appUrl }),
+        ...(form.claimedNbfcPartner.trim() ? { claimedNbfcPartner: form.claimedNbfcPartner.trim() } : {}),
+        ...(form.grievanceEmail.trim() ? { grievanceEmail: form.grievanceEmail.trim() } : {}),
+        ...(form.supportEmail.trim() ? { supportEmail: form.supportEmail.trim() } : {}),
+        ...(form.supportPhone.trim() ? { supportPhone: form.supportPhone.trim() } : {}),
+        status: "PUBLISHED",
+        verificationStatus: "UNDER_VERIFICATION",
+        claimStatus: "UNCLAIMED",
+        riskLevel: "UNDER_REVIEW",
+        trustScore: 50,
+        averageRating: 0,
+        reviewCount: 0,
+      });
+      setCreatedSlug(generatedSlug);
+      setForm(defaultCreateForm);
+    } catch (createError) {
+      setLocalError(getApiValidationMessage(createError));
+    }
   };
 
   const updateLogoFile = async (file?: File) => {
@@ -205,13 +243,13 @@ function CreateLoanAppPanel({
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              Play Store URL <span className="text-rose-500">*</span>
+              Play Store or website URL <span className="text-rose-500">*</span>
             </label>
             <input
               value={form.playStoreUrl}
               onChange={(e) => update("playStoreUrl", e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              placeholder="https://play.google.com/store/apps/details?id=..."
+              placeholder="https://play.google.com/... or https://appwebsite.com"
             />
           </div>
 

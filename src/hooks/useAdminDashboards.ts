@@ -53,6 +53,7 @@ export type CreateAdminLoanAppInput = {
   supportPhone?: string;
   grievanceEmail?: string;
   playStoreUrl?: string;
+  websiteUrl?: string;
   status?: "DRAFT" | "PUBLISHED" | "UNDER_REVIEW" | "HIDDEN" | "ARCHIVED";
   verificationStatus?: "UNVERIFIED" | "PARTIALLY_VERIFIED" | "VERIFIED" | "UNDER_VERIFICATION" | "CONFLICTING_INFORMATION" | "NEEDS_MANUAL_REVIEW";
   claimStatus?: "UNCLAIMED" | "CLAIM_PENDING" | "CLAIMED" | "DISPUTED_CLAIM";
