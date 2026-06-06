@@ -66,7 +66,7 @@ export function EntityHero({ data, onOpenEnrich }: { data: EntityProfileData; on
     <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex min-w-0 gap-3">
-          {logoUrl ? <img src={logoUrl} alt={data.displayName} className="h-14 w-14 shrink-0 rounded-2xl border border-slate-200 object-cover" /> : null}
+          {logoUrl ? <img src={logoUrl} alt={data.displayName} className="h-14 w-14 shrink-0 rounded-2xl border border-slate-200 bg-white p-1 object-contain" /> : null}
           <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-wider text-slate-400">
             {data.entityType.replaceAll("_"," ")} {data.details.registrationNumber ? `/ RBI reg ${data.details.registrationNumber}` : ""}
@@ -159,7 +159,7 @@ export function NbfcOfficialDetailsCard({ data }: { data: EntityProfileData }) {
     <section className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          {logoUrl ? <img src={logoUrl} alt={data.displayName} className="h-12 w-12 rounded-2xl border border-slate-200 object-cover" /> : null}
+          {logoUrl ? <img src={logoUrl} alt={data.displayName} className="h-12 w-12 rounded-2xl border border-slate-200 bg-white p-1 object-contain" /> : null}
           <div>
             <h2 className="mb-1.5 text-base font-semibold text-slate-800">NBFC Official Details</h2>
             <p className="text-xs text-slate-400">Official details submitted or derived from linked records.</p>

@@ -1,4 +1,53 @@
 -- CreateTable
+DO $$ BEGIN
+    CREATE TYPE "ProfileStatus" AS ENUM (
+        'DRAFT',
+        'PUBLISHED',
+        'UNDER_REVIEW',
+        'HIDDEN',
+        'ARCHIVED'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "VerificationStatus" AS ENUM (
+        'UNVERIFIED',
+        'PARTIALLY_VERIFIED',
+        'VERIFIED',
+        'UNDER_VERIFICATION',
+        'CONFLICTING_INFORMATION',
+        'NEEDS_MANUAL_REVIEW'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "ClaimStatus" AS ENUM (
+        'UNCLAIMED',
+        'CLAIM_PENDING',
+        'CLAIMED',
+        'DISPUTED_CLAIM'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "RiskLevel" AS ENUM (
+        'LOW',
+        'MEDIUM',
+        'HIGH',
+        'SEVERE_COMPLAINT_PATTERN',
+        'UNDER_REVIEW',
+        'INSUFFICIENT_DATA'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 CREATE TABLE "NbfcCompany" (
     "id" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
