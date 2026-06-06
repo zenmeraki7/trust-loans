@@ -42,7 +42,7 @@ function DetailValue({ value, supportMissing = false }: { value: unknown; suppor
 }
 
 function getEntityLogo(data: EntityProfileData) {
-  return data.linkedApps.find((app) => app.logoUrl)?.logoUrl ?? "";
+  return data.logoUrl ?? data.linkedApps.find((app) => app.logoUrl)?.logoUrl ?? "";
 }
 
 function hasEnrichedDetails(data: EntityProfileData) {

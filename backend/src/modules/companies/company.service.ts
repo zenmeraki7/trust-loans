@@ -1,6 +1,7 @@
-import { ProfileStatus, ReviewStatus, type LoanApp, type ComplaintSummary, type Review, type CompanyResponse } from "@prisma/client";
+import { ClaimStatus, ProfileStatus, ReviewStatus, RiskLevel, VerificationStatus, type LoanApp, type NbfcCompany, type ComplaintSummary, type Review, type CompanyResponse } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
-import type { EnrichCompanyProfileInput } from "./company.validators.js";
+import { AppError } from "../../utils/AppError.js";
+import type { CreateCompanyProfileInput, EnrichCompanyProfileInput } from "./company.validators.js";
 
 type CompanyReview = Pick<Review, "id" | "loanAppId" | "title" | "publicBody" | "body" | "rating" | "tags" | "createdAt"> & {
   companyResponses: Array<Pick<CompanyResponse, "id" | "body" | "createdAt" | "status" | "companyName">>;
@@ -49,7 +50,8 @@ const relationshipVerificationMap = {
 const candidateNames = (app: LoanApp) =>
   [app.companyName, app.claimedNbfcPartner, app.developerName].filter((value): value is string => Boolean(value?.trim()));
 
-const getEntityName = (apps: LoanApp[], slug: string) => {
+const getEntityName = (apps: LoanApp[], slug: string, nbfc?: NbfcCompany | null) => {
+  if (nbfc) return nbfc.name;
   for (const app of apps) {
     const matched = candidateNames(app).find((name) => slugify(name) === slug);
     if (matched) return matched;
@@ -94,9 +96,9 @@ const mostSevereRisk = (apps: CompanyApp[]) => {
     .reduce<(typeof order)[number]>((current, next) => (order.indexOf(next) > order.indexOf(current) ? next : current), "low");
 };
 
-const buildProfile = (slug: string, apps: CompanyApp[]) => {
+const buildProfile = (slug: string, apps: CompanyApp[], nbfc?: NbfcCompany | null) => {
   const first = apps[0];
-  const entityName = getEntityName(apps, slug);
+  const entityName = getEntityName(apps, slug, nbfc);
   const totalReviews = apps.reduce((sum, app) => sum + app.reviewCount, 0);
   const averageTrust = apps.length === 0 ? 0 : Math.round(apps.reduce((sum, app) => sum + app.trustScore, 0) / apps.length);
   const allReviews = apps.flatMap((app) => app.reviews.map((review) => ({ ...review, app })));
@@ -116,31 +118,32 @@ const buildProfile = (slug: string, apps: CompanyApp[]) => {
     slug,
     name: entityName,
     displayName: entityName,
+    logoUrl: nbfc?.logoUrl ?? first?.logoUrl ?? "",
     entityType: "company",
-    verificationStatus: first ? verificationMap[first.verificationStatus] : "under_verification",
-    riskSignalLevel: mostSevereRisk(apps),
+    verificationStatus: nbfc ? verificationMap[nbfc.verificationStatus] : first ? verificationMap[first.verificationStatus] : "under_verification",
+    riskSignalLevel: nbfc && apps.length === 0 ? riskLevelMap[nbfc.riskLevel] : mostSevereRisk(apps),
     averageLinkedAppTrustScore: averageTrust,
     totalLinkedApps: apps.length,
     totalReviewsAcrossApps: totalReviews,
     details: {
       legalName: entityName,
-      website: first?.websiteUrl ?? "",
-      supportEmail: first?.supportEmail ?? "",
-      supportPhone: first?.supportPhone ?? "",
-      registeredAddress: first?.registeredAddress ?? "",
+      website: nbfc?.officialWebsite ?? first?.websiteUrl ?? "",
+      supportEmail: nbfc?.supportEmail ?? first?.supportEmail ?? "",
+      supportPhone: nbfc?.supportPhone ?? first?.supportPhone ?? "",
+      registeredAddress: nbfc?.registeredAddress ?? first?.registeredAddress ?? "",
       registrationNumber: "",
-      rbiRegistrationClaim: first?.claimedNbfcPartner ?? "",
-      sourceUrls: [first?.websiteUrl, first?.playStoreUrl, first?.appStoreUrl].filter((value): value is string => Boolean(value)),
-      lastVerifiedAt: first?.updatedAt.toISOString().slice(0, 10) ?? "",
-      verificationConfidence: first?.verificationStatus === "VERIFIED" ? "high" : first?.verificationStatus === "PARTIALLY_VERIFIED" ? "medium" : "low",
+      rbiRegistrationClaim: nbfc?.nbfcRegistrationClaim ?? first?.claimedNbfcPartner ?? "",
+      sourceUrls: [nbfc?.officialWebsite, first?.websiteUrl, first?.playStoreUrl, first?.appStoreUrl].filter((value): value is string => Boolean(value)),
+      lastVerifiedAt: (nbfc?.updatedAt ?? first?.updatedAt)?.toISOString().slice(0, 10) ?? "",
+      verificationConfidence: (nbfc?.verificationStatus ?? first?.verificationStatus) === "VERIFIED" ? "high" : (nbfc?.verificationStatus ?? first?.verificationStatus) === "PARTIALLY_VERIFIED" ? "medium" : "low",
     },
     grievance: {
       officerName: "",
-      email: first?.grievanceEmail ?? first?.supportEmail ?? "",
-      phone: first?.supportPhone ?? "",
-      address: first?.registeredAddress ?? "",
-      sourceUrl: first?.websiteUrl ?? "",
-      lastVerifiedAt: first?.updatedAt.toISOString().slice(0, 10) ?? "",
+      email: nbfc?.grievanceEmail ?? first?.grievanceEmail ?? first?.supportEmail ?? "",
+      phone: nbfc?.supportPhone ?? first?.supportPhone ?? "",
+      address: nbfc?.registeredAddress ?? first?.registeredAddress ?? "",
+      sourceUrl: nbfc?.officialWebsite ?? first?.websiteUrl ?? "",
+      lastVerifiedAt: (nbfc?.updatedAt ?? first?.updatedAt)?.toISOString().slice(0, 10) ?? "",
     },
     linkedApps: apps.map((app) => ({
       id: app.id,
@@ -245,9 +248,15 @@ const loadApps = () =>
     },
   });
 
+const loadNbfcCompanies = () =>
+  prisma.nbfcCompany.findMany({
+    where: { status: { not: ProfileStatus.ARCHIVED } },
+    orderBy: [{ updatedAt: "desc" }],
+  });
+
 export const companyService = {
   async list() {
-    const apps = await loadApps();
+    const [apps, nbfcs] = await Promise.all([loadApps(), loadNbfcCompanies()]);
     const groups = new Map<string, CompanyApp[]>();
     for (const app of apps) {
       const name = app.companyName ?? app.claimedNbfcPartner ?? app.developerName;
@@ -255,57 +264,112 @@ export const companyService = {
       const slug = slugify(name);
       groups.set(slug, [...(groups.get(slug) ?? []), app]);
     }
-    const items = [...groups.entries()].map(([slug, groupedApps]) => {
-      const profile = buildProfile(slug, groupedApps);
-      return {
-        id: profile.id,
-        slug: profile.slug,
-        name: profile.name,
-        displayName: profile.displayName,
-        entityType: profile.entityType,
-        verificationStatus: profile.verificationStatus,
-        riskSignalLevel: profile.riskSignalLevel,
-        totalLinkedApps: profile.totalLinkedApps,
-        totalReviewsAcrossApps: profile.totalReviewsAcrossApps,
-      };
-    });
+    const nbfcBySlug = new Map(nbfcs.map((nbfc) => [nbfc.slug, nbfc]));
+    const items = [
+      ...nbfcs.map((nbfc) => {
+        const groupedApps = groups.get(nbfc.slug) ?? [];
+        const profile = buildProfile(nbfc.slug, groupedApps, nbfc);
+        return {
+          id: profile.id,
+          slug: profile.slug,
+          name: profile.name,
+          displayName: profile.displayName,
+          entityType: profile.entityType,
+          verificationStatus: profile.verificationStatus,
+          riskSignalLevel: profile.riskSignalLevel,
+          totalLinkedApps: profile.totalLinkedApps,
+          totalReviewsAcrossApps: profile.totalReviewsAcrossApps,
+        };
+      }),
+      ...[...groups.entries()].filter(([slug]) => !nbfcBySlug.has(slug)).map(([slug, groupedApps]) => {
+        const profile = buildProfile(slug, groupedApps);
+        return {
+          id: profile.id,
+          slug: profile.slug,
+          name: profile.name,
+          displayName: profile.displayName,
+          entityType: profile.entityType,
+          verificationStatus: profile.verificationStatus,
+          riskSignalLevel: profile.riskSignalLevel,
+          totalLinkedApps: profile.totalLinkedApps,
+          totalReviewsAcrossApps: profile.totalReviewsAcrossApps,
+        };
+      }),
+    ];
     return { items, meta: { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
 
   async getBySlug(slug: string) {
     const normalized = slugify(slug);
-    const apps = await loadApps();
+    const [apps, nbfc] = await Promise.all([loadApps(), prisma.nbfcCompany.findUnique({ where: { slug: normalized } })]);
     const matchedApps = apps.filter((app) => candidateNames(app).some((name) => slugify(name) === normalized));
-    if (matchedApps.length === 0) return null;
-    return buildProfile(normalized, matchedApps);
+    if (!nbfc && matchedApps.length === 0) return null;
+    return buildProfile(normalized, matchedApps, nbfc);
+  },
+
+  async create(input: CreateCompanyProfileInput) {
+    const normalized = slugify(input.slug ?? input.name);
+    const existing = await prisma.nbfcCompany.findUnique({ where: { slug: normalized } });
+    if (existing) {
+      throw new AppError("Company slug already exists", 409);
+    }
+
+    const nbfc = await prisma.nbfcCompany.create({
+      data: {
+        slug: normalized,
+        name: input.name,
+        logoUrl: input.logoUrl,
+        officialWebsite: input.officialWebsite,
+        nbfcRegistrationClaim: input.nbfcRegistrationClaim,
+        status: ProfileStatus.PUBLISHED,
+        verificationStatus: VerificationStatus.UNDER_VERIFICATION,
+        claimStatus: ClaimStatus.UNCLAIMED,
+        riskLevel: RiskLevel.INSUFFICIENT_DATA,
+        grievanceEmail: input.grievanceEmail,
+        supportEmail: input.supportEmail,
+        supportPhone: input.supportPhone,
+        registeredAddress: input.registeredAddress,
+      },
+    });
+
+    return buildProfile(normalized, [], nbfc);
   },
 
   async enrich(slug: string, input: EnrichCompanyProfileInput) {
     const normalized = slugify(slug);
-    const apps = await loadApps();
+    const [apps, existingNbfc] = await Promise.all([loadApps(), prisma.nbfcCompany.findUnique({ where: { slug: normalized } })]);
     const matchedApps = apps.filter((app) => candidateNames(app).some((name) => slugify(name) === normalized));
-    if (matchedApps.length === 0) return null;
+    if (!existingNbfc && matchedApps.length === 0) return null;
 
     const data = {
       ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
-      ...(input.officialWebsite !== undefined ? { websiteUrl: input.officialWebsite } : {}),
+      ...(input.officialWebsite !== undefined ? { officialWebsite: input.officialWebsite } : {}),
       ...(input.supportEmail !== undefined ? { supportEmail: input.supportEmail } : {}),
       ...(input.grievanceEmail !== undefined ? { grievanceEmail: input.grievanceEmail } : {}),
       ...(input.supportPhone !== undefined ? { supportPhone: input.supportPhone } : {}),
       ...(input.registeredAddress !== undefined ? { registeredAddress: input.registeredAddress } : {}),
-      ...(input.nbfcRegistrationClaim !== undefined ? { claimedNbfcPartner: input.nbfcRegistrationClaim } : {}),
+      ...(input.nbfcRegistrationClaim !== undefined ? { nbfcRegistrationClaim: input.nbfcRegistrationClaim } : {}),
+      ...(input.companyDescription !== undefined ? { companyDescription: input.companyDescription } : {}),
     };
 
-    if (Object.keys(data).length > 0) {
-      await prisma.loanApp.updateMany({
-        where: { id: { in: matchedApps.map((app) => app.id) } },
-        data,
-      });
-    }
+    const entityName = existingNbfc?.name ?? getEntityName(matchedApps, normalized);
+    const nbfc = await prisma.nbfcCompany.upsert({
+      where: { slug: normalized },
+      create: {
+        slug: normalized,
+        name: entityName,
+        ...data,
+        status: ProfileStatus.PUBLISHED,
+        verificationStatus: VerificationStatus.UNDER_VERIFICATION,
+        claimStatus: ClaimStatus.UNCLAIMED,
+        riskLevel: RiskLevel.INSUFFICIENT_DATA,
+      },
+      update: data,
+    });
 
     const refreshedApps = await loadApps();
     const matchedIds = new Set(matchedApps.map((app) => app.id));
     const refreshedMatches = refreshedApps.filter((app) => matchedIds.has(app.id));
-    return buildProfile(normalized, refreshedMatches);
+    return buildProfile(normalized, refreshedMatches, nbfc);
   },
 };

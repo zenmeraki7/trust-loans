@@ -5,6 +5,7 @@ export type EntityProfileData = {
   slug: string;
   name: string;
   displayName: string;
+  logoUrl?: string;
   entityType: "company" | "app_developer" | "claimed_nbfc_partner" | "lending_service_provider" | "unknown";
   verificationStatus: "verified_public_details" | "partially_verified" | "under_verification" | "conflicting_information" | "user_submitted";
   riskSignalLevel: RiskLevel;

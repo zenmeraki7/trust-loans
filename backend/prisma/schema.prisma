@@ -63,6 +63,30 @@ model LoanApp {
   @@index([verificationStatus])
 }
 
+model NbfcCompany {
+  id                    String             @id @default(cuid())
+  slug                  String             @unique
+  name                  String
+  logoUrl               String?
+  officialWebsite       String?
+  supportEmail          String?
+  grievanceEmail        String?
+  supportPhone          String?
+  registeredAddress     String?
+  nbfcRegistrationClaim String?
+  companyDescription    String?
+  status                ProfileStatus      @default(PUBLISHED)
+  verificationStatus    VerificationStatus @default(UNDER_VERIFICATION)
+  claimStatus           ClaimStatus        @default(UNCLAIMED)
+  riskLevel             RiskLevel          @default(INSUFFICIENT_DATA)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([status])
+  @@index([verificationStatus])
+  @@index([riskLevel])
+}
+
 model HarassmentCase {
   id                      String               @id @default(cuid())
   userId                  String
