@@ -1,5 +1,9 @@
+"use client";
+
 //src/app/components/entities/CompanyNbfcProfilePage.tsx
 import Link from "next/link";
+import { type FormEvent, useState } from "react";
+import { apiClient } from "@/lib/apiClient";
 import type { EntityProfileData } from "@/types/entityProfile";
 
 export function RatingStars({ rating }: { rating: number }) {
@@ -37,13 +41,33 @@ function DetailValue({ value, supportMissing = false }: { value: unknown; suppor
   return <span className="text-sm font-medium text-slate-900">{String(value)}</span>;
 }
 
-export function EntityHero({ data }: { data: EntityProfileData }) {
+function getEntityLogo(data: EntityProfileData) {
+  return data.linkedApps.find((app) => app.logoUrl)?.logoUrl ?? "";
+}
+
+function hasEnrichedDetails(data: EntityProfileData) {
+  return Boolean(
+    getEntityLogo(data) ||
+      data.details.website ||
+      data.details.supportEmail ||
+      data.grievance.email ||
+      data.details.supportPhone ||
+      data.details.registeredAddress ||
+      data.details.rbiRegistrationClaim,
+  );
+}
+
+export function EntityHero({ data, onOpenEnrich }: { data: EntityProfileData; onOpenEnrich: () => void }) {
   const linkedAppsHref = `/loan-apps?q=${encodeURIComponent(data.displayName)}`;
+  const logoUrl = getEntityLogo(data);
+  const enriched = hasEnrichedDetails(data);
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0">
+        <div className="flex min-w-0 gap-3">
+          {logoUrl ? <img src={logoUrl} alt={data.displayName} className="h-14 w-14 shrink-0 rounded-2xl border border-slate-200 object-cover" /> : null}
+          <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-wider text-slate-400">
             {data.entityType.replaceAll("_"," ")} {data.details.registrationNumber ? `/ RBI reg ${data.details.registrationNumber}` : ""}
           </p>
@@ -51,7 +75,10 @@ export function EntityHero({ data }: { data: EntityProfileData }) {
           <div className="mt-2 flex flex-wrap gap-2">
             <RelationshipTypeBadge label={data.entityType} />
             <VerificationStatusBadge status={data.verificationStatus} />
+            {enriched ? <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">Verified / Claimed</span> : null}
             <RiskBadge level={data.riskSignalLevel} />
+          </div>
+          {data.details.lastVerifiedAt ? <p className="mt-1 text-xs text-slate-400">Last updated: {data.details.lastVerifiedAt}</p> : null}
           </div>
         </div>
         <div className="rounded-xl bg-slate-50 px-4 py-3 text-center">
@@ -77,6 +104,7 @@ export function EntityHero({ data }: { data: EntityProfileData }) {
         <Link href="/grievance-directory" className="rounded-xl bg-[#1746A2] px-4 py-2 text-sm font-semibold text-white">File Grievance</Link>
         <Link href={linkedAppsHref} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">View Linked Apps</Link>
         <Link href="/corrections" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Submit Correction</Link>
+        <button type="button" onClick={onOpenEnrich} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-[#1746A2]">{enriched ? "Edit Profile Details" : "Claim / Enrich this NBFC Profile"}</button>
         <Link href="/business/claim" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-400">Claim This Entity</Link>
       </div>
     </section>
@@ -121,6 +149,189 @@ export function EntityDetailsCard({ data }: { data: EntityProfileData }) {
       </div>
       <p className="mt-1.5 text-xs text-slate-400">Source URLs: {d.sourceUrls.join(", ")}</p>
     </section>
+  );
+}
+
+export function NbfcOfficialDetailsCard({ data }: { data: EntityProfileData }) {
+  const logoUrl = getEntityLogo(data);
+
+  return (
+    <section className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {logoUrl ? <img src={logoUrl} alt={data.displayName} className="h-12 w-12 rounded-2xl border border-slate-200 object-cover" /> : null}
+          <div>
+            <h2 className="mb-1.5 text-base font-semibold text-slate-800">NBFC Official Details</h2>
+            <p className="text-xs text-slate-400">Official details submitted or derived from linked records.</p>
+          </div>
+        </div>
+        {hasEnrichedDetails(data) ? <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">Verified / Claimed</span> : null}
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-[11px] uppercase tracking-wider text-slate-400">Website</p>
+          {data.details.website ? <a href={data.details.website} className="mt-1 block break-all font-medium text-[#1746A2] underline">{data.details.website}</a> : <DetailValue value="" />}
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-[11px] uppercase tracking-wider text-slate-400">Support email</p>
+          <p className="mt-1"><DetailValue value={data.details.supportEmail} supportMissing /></p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-[11px] uppercase tracking-wider text-slate-400">Grievance email</p>
+          <p className="mt-1"><DetailValue value={data.grievance.email} supportMissing /></p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-[11px] uppercase tracking-wider text-slate-400">Phone</p>
+          <p className="mt-1"><DetailValue value={data.details.supportPhone || data.grievance.phone} supportMissing /></p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3 md:col-span-2">
+          <p className="text-[11px] uppercase tracking-wider text-slate-400">Registered address</p>
+          <p className="mt-1"><DetailValue value={data.details.registeredAddress || data.grievance.address} /></p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3 md:col-span-2">
+          <p className="text-[11px] uppercase tracking-wider text-slate-400">Registration claim</p>
+          <p className="mt-1"><DetailValue value={data.details.rbiRegistrationClaim} /></p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type EnrichmentForm = {
+  logoUrl: string;
+  officialWebsite: string;
+  supportEmail: string;
+  grievanceEmail: string;
+  supportPhone: string;
+  registeredAddress: string;
+  nbfcRegistrationClaim: string;
+  companyDescription: string;
+};
+
+function makeEnrichmentForm(data: EntityProfileData): EnrichmentForm {
+  return {
+    logoUrl: getEntityLogo(data),
+    officialWebsite: data.details.website,
+    supportEmail: data.details.supportEmail,
+    grievanceEmail: data.grievance.email,
+    supportPhone: data.details.supportPhone || data.grievance.phone,
+    registeredAddress: data.details.registeredAddress || data.grievance.address,
+    nbfcRegistrationClaim: data.details.rbiRegistrationClaim,
+    companyDescription: "",
+  };
+}
+
+function isValidOptionalUrl(value: string) {
+  if (!value) return true;
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isValidOptionalEmail(value: string) {
+  return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function TextInput({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: string }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-slate-600">{label}</span>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1746A2]" />
+    </label>
+  );
+}
+
+export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: EntityProfileData; onClose: () => void; onSaved?: () => Promise<unknown> | unknown }) {
+  const [form, setForm] = useState<EnrichmentForm>(() => makeEnrichmentForm(data));
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const update = (field: keyof EnrichmentForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!isValidOptionalUrl(form.logoUrl) || !isValidOptionalUrl(form.officialWebsite)) {
+      setError("Enter valid URLs for logo and website.");
+      return;
+    }
+    if (!isValidOptionalEmail(form.supportEmail) || !isValidOptionalEmail(form.grievanceEmail)) {
+      setError("Enter valid support and grievance email addresses.");
+      return;
+    }
+
+    const payload = Object.fromEntries(Object.entries(form).filter(([, value]) => value.trim()));
+    setIsSaving(true);
+    try {
+      await apiClient(`/api/companies/${data.slug}/enrich`, { method: "POST", body: payload });
+      await onSaved?.();
+      setSuccess("Profile details saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Could not save profile details.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] overflow-y-auto bg-slate-950/50 px-4 py-6">
+      <div className="mx-auto max-w-3xl rounded-2xl bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Claim & Enrich NBFC Profile</h2>
+            <p className="mt-1 text-sm text-slate-500">Add official identity, contact, and regulatory details for {data.displayName}.</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Close</button>
+        </div>
+
+        <form onSubmit={submit} className="mt-4 space-y-4">
+          {(error || success) ? <p className={`rounded-xl border p-3 text-sm ${error ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{error || success}</p> : null}
+
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-sm font-semibold text-slate-800">Basic Info</h3>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <TextInput label="Logo URL" value={form.logoUrl} onChange={(value) => update("logoUrl", value)} placeholder="https://example.com/logo.png" />
+              <TextInput label="Official website" value={form.officialWebsite} onChange={(value) => update("officialWebsite", value)} placeholder="https://company.com" />
+            </div>
+            <label className="mt-3 block">
+              <span className="mb-1 block text-xs font-medium text-slate-600">Company description</span>
+              <textarea value={form.companyDescription} onChange={(event) => update("companyDescription", event.target.value)} rows={3} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1746A2]" placeholder="Short about section or official profile note" />
+            </label>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-sm font-semibold text-slate-800">Contact Details</h3>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <TextInput label="Support email" type="email" value={form.supportEmail} onChange={(value) => update("supportEmail", value)} placeholder="support@company.com" />
+              <TextInput label="Grievance email" type="email" value={form.grievanceEmail} onChange={(value) => update("grievanceEmail", value)} placeholder="grievance@company.com" />
+              <TextInput label="Support phone" value={form.supportPhone} onChange={(value) => update("supportPhone", value)} placeholder="+91 XXXXX XXXXX" />
+              <TextInput label="Registered address" value={form.registeredAddress} onChange={(value) => update("registeredAddress", value)} placeholder="Registered office address" />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-sm font-semibold text-slate-800">Legal / Regulatory Info</h3>
+            <div className="mt-3">
+              <TextInput label="NBFC registration claim text" value={form.nbfcRegistrationClaim} onChange={(value) => update("nbfcRegistrationClaim", value)} placeholder="RBI registration claim or official NBFC partner name" />
+            </div>
+          </section>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-slate-400">Suggest edit is available through the correction flow for users who cannot claim this profile.</p>
+            <div className="flex gap-2">
+              <Link href="/corrections" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Suggest edit</Link>
+              <button type="submit" disabled={isSaving} className="rounded-xl bg-[#1746A2] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Saving..." : "Save profile details"}</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -194,12 +405,15 @@ export function EntityFAQ({ items }: { items: EntityProfileData["faq"] }) {
   return <section className="grid grid-cols-1 gap-2 md:grid-cols-2">{items.map((f)=><details key={f.question} className="rounded-2xl border border-slate-200/60 bg-white p-3 shadow-sm"><summary className="cursor-pointer text-sm font-semibold">{f.question}</summary><p className="mt-2 text-sm text-slate-600">{f.answer}</p></details>)}</section>;
 }
 
-export default function CompanyNbfcProfilePage({ data }: { data: EntityProfileData }) {
+export default function CompanyNbfcProfilePage({ data, onEnriched }: { data: EntityProfileData; onEnriched?: () => Promise<unknown> | unknown }) {
+  const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 pb-10">
       <div className="mx-auto max-w-7xl space-y-3 px-4 py-4 md:px-6 md:py-6">
-        <EntityHero data={data} />
+        <EntityHero data={data} onOpenEnrich={() => setShowEnrichmentModal(true)} />
         <EntityDisclaimerBox />
+        <NbfcOfficialDetailsCard data={data} />
         <EntityDetailsCard data={data} />
         <LinkedLoanAppsSection apps={data.linkedApps} />
         <RelationshipVerificationTable rows={data.relationshipEvidence} />
@@ -218,6 +432,7 @@ export default function CompanyNbfcProfilePage({ data }: { data: EntityProfileDa
         <EntityMentionedReviews items={data.mentionedReviews} />
         <EntityFAQ items={data.faq} />
       </div>
+      {showEnrichmentModal ? <EntityEnrichmentModal data={data} onClose={() => setShowEnrichmentModal(false)} onSaved={onEnriched} /> : null}
     </main>
   );
 }

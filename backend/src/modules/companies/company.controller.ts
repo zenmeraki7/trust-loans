@@ -12,4 +12,10 @@ export const companyController = {
     if (!company) throw new AppError("Company profile not found", 404);
     res.json(company);
   },
+
+  async enrich(req: Request, res: Response) {
+    const company = await companyService.enrich(req.params.id, req.body);
+    if (!company) throw new AppError("Company profile not found", 404);
+    res.json(company);
+  },
 };

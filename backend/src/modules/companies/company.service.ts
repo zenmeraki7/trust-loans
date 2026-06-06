@@ -1,5 +1,6 @@
 import { ProfileStatus, ReviewStatus, type LoanApp, type ComplaintSummary, type Review, type CompanyResponse } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
+import type { EnrichCompanyProfileInput } from "./company.validators.js";
 
 type CompanyReview = Pick<Review, "id" | "loanAppId" | "title" | "publicBody" | "body" | "rating" | "tags" | "createdAt"> & {
   companyResponses: Array<Pick<CompanyResponse, "id" | "body" | "createdAt" | "status" | "companyName">>;
@@ -277,5 +278,34 @@ export const companyService = {
     const matchedApps = apps.filter((app) => candidateNames(app).some((name) => slugify(name) === normalized));
     if (matchedApps.length === 0) return null;
     return buildProfile(normalized, matchedApps);
+  },
+
+  async enrich(slug: string, input: EnrichCompanyProfileInput) {
+    const normalized = slugify(slug);
+    const apps = await loadApps();
+    const matchedApps = apps.filter((app) => candidateNames(app).some((name) => slugify(name) === normalized));
+    if (matchedApps.length === 0) return null;
+
+    const data = {
+      ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
+      ...(input.officialWebsite !== undefined ? { websiteUrl: input.officialWebsite } : {}),
+      ...(input.supportEmail !== undefined ? { supportEmail: input.supportEmail } : {}),
+      ...(input.grievanceEmail !== undefined ? { grievanceEmail: input.grievanceEmail } : {}),
+      ...(input.supportPhone !== undefined ? { supportPhone: input.supportPhone } : {}),
+      ...(input.registeredAddress !== undefined ? { registeredAddress: input.registeredAddress } : {}),
+      ...(input.nbfcRegistrationClaim !== undefined ? { claimedNbfcPartner: input.nbfcRegistrationClaim } : {}),
+    };
+
+    if (Object.keys(data).length > 0) {
+      await prisma.loanApp.updateMany({
+        where: { id: { in: matchedApps.map((app) => app.id) } },
+        data,
+      });
+    }
+
+    const refreshedApps = await loadApps();
+    const matchedIds = new Set(matchedApps.map((app) => app.id));
+    const refreshedMatches = refreshedApps.filter((app) => matchedIds.has(app.id));
+    return buildProfile(normalized, refreshedMatches);
   },
 };

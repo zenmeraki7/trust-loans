@@ -30,5 +30,5 @@ export default function CompanyNbfcProfileRoute({ slug }: { slug: string }) {
     );
   }
 
-  return <CompanyNbfcProfilePage data={profile.data} />;
+  return <CompanyNbfcProfilePage data={profile.data} onEnriched={() => profile.refetch()} />;
 }
