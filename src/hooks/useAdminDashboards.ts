@@ -45,11 +45,14 @@ type CorrectionDto = {
 export type CreateAdminLoanAppInput = {
   slug: string;
   name: string;
+  logoUrl?: string;
   developerName?: string;
   companyName?: string;
   claimedNbfcPartner?: string;
   supportEmail?: string;
+  supportPhone?: string;
   grievanceEmail?: string;
+  playStoreUrl?: string;
   status?: "DRAFT" | "PUBLISHED" | "UNDER_REVIEW" | "HIDDEN" | "ARCHIVED";
   verificationStatus?: "UNVERIFIED" | "PARTIALLY_VERIFIED" | "VERIFIED" | "UNDER_VERIFICATION" | "CONFLICTING_INFORMATION" | "NEEDS_MANUAL_REVIEW";
   claimStatus?: "UNCLAIMED" | "CLAIM_PENDING" | "CLAIMED" | "DISPUTED_CLAIM";

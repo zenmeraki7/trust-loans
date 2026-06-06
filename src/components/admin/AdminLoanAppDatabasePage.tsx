@@ -67,13 +67,14 @@ export function AdminAppsHeader({ stats, onAdd }: { stats: AdminLoanAppDatabase[
 }
 
 const defaultCreateForm = {
-  slug: "",
   name: "",
-  developerName: "",
-  companyName: "",
+  slug: "",
+  logoUrl: "",
+  playStoreUrl: "",
   claimedNbfcPartner: "",
-  supportEmail: "",
   grievanceEmail: "",
+  supportEmail: "",
+  supportPhone: "",
 };
 
 function slugFromName(name: string) {
@@ -106,12 +107,23 @@ function CreateLoanAppPanel({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLocalError("");
-    if (!form.slug || !form.name) {
-      setLocalError("App name and slug are required.");
+    if (!form.name) {
+      setLocalError("App name is required.");
+      return;
+    }
+    if (!form.playStoreUrl) {
+      setLocalError("Play Store URL is required.");
       return;
     }
     await onCreate({
-      ...form,
+      slug: form.slug || slugFromName(form.name),
+      name: form.name,
+      logoUrl: form.logoUrl,
+      playStoreUrl: form.playStoreUrl,
+      claimedNbfcPartner: form.claimedNbfcPartner,
+      grievanceEmail: form.grievanceEmail,
+      supportEmail: form.supportEmail,
+      supportPhone: form.supportPhone,
       status: "PUBLISHED",
       verificationStatus: "UNDER_VERIFICATION",
       claimStatus: "UNCLAIMED",
@@ -120,7 +132,7 @@ function CreateLoanAppPanel({
       averageRating: 0,
       reviewCount: 0,
     });
-    setCreatedSlug(form.slug);
+    setCreatedSlug(form.slug || slugFromName(form.name));
     setForm(defaultCreateForm);
   };
 
@@ -128,30 +140,142 @@ function CreateLoanAppPanel({
     <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Add loan app</h2>
-          <p className="text-sm text-slate-600">This creates a real database record and makes the public profile/review form available immediately.</p>
+          <h2 className="text-base font-semibold text-slate-900">Add loan app</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Enter the 5 key details. Slug is auto-generated from the app name.
+          </p>
         </div>
-        <button type="button" onClick={onCancel} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Cancel</button>
+        <button type="button" onClick={onCancel} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">
+          Cancel
+        </button>
       </div>
-      {(localError || error) && <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">{localError || error}</p>}
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <input value={form.name} onChange={(e) => update("name", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="App name, e.g. Swift Cash" />
-        <input value={form.slug} onChange={(e) => update("slug", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Slug, e.g. swift-cash" />
-        <input value={form.developerName} onChange={(e) => update("developerName", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Developer name" />
-        <input value={form.companyName} onChange={(e) => update("companyName", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Company name" />
-        <input value={form.claimedNbfcPartner} onChange={(e) => update("claimedNbfcPartner", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Claimed NBFC partner" />
-        <input value={form.supportEmail} onChange={(e) => update("supportEmail", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Support email" />
-        <input value={form.grievanceEmail} onChange={(e) => update("grievanceEmail", e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Grievance email" />
+
+      {(localError || error) && (
+        <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">
+          {localError || error}
+        </p>
+      )}
+
+      <div className="mt-4 space-y-3">
+
+        {/* Row 1: App name + Play Store URL */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              App name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="e.g. Swift Cash"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Play Store URL <span className="text-rose-500">*</span>
+            </label>
+            <input
+              value={form.playStoreUrl}
+              onChange={(e) => update("playStoreUrl", e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="https://play.google.com/store/apps/details?id=..."
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Logo URL + Claimed NBFC */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Logo URL</label>
+            <input
+              value={form.logoUrl}
+              onChange={(e) => update("logoUrl", e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="https://example.com/logo.png"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Claimed NBFC partner</label>
+            <input
+              value={form.claimedNbfcPartner}
+              onChange={(e) => update("claimedNbfcPartner", e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="e.g. ABC Finance Ltd"
+            />
+          </div>
+        </div>
+
+        {/* Row 3: Grievance email + Support email */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Grievance email</label>
+            <input
+              type="email"
+              value={form.grievanceEmail}
+              onChange={(e) => update("grievanceEmail", e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="grievance@company.com"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Support email</label>
+            <input
+              type="email"
+              value={form.supportEmail}
+              onChange={(e) => update("supportEmail", e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="support@company.com"
+            />
+          </div>
+        </div>
+
+        {/* Row 4: Support phone */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Support phone</label>
+            <input
+              type="tel"
+              value={form.supportPhone}
+              onChange={(e) => update("supportPhone", e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="+91 XXXXX XXXXX"
+            />
+          </div>
+        </div>
+
+        {/* Auto-generated slug preview */}
+        {form.name && (
+          <p className="text-xs text-slate-400">
+            Slug: <span className="font-mono text-slate-600">{form.slug || slugFromName(form.name)}</span>
+            <span className="ml-2 text-slate-400">(auto-generated, edit if needed)</span>
+          </p>
+        )}
       </div>
-      <button type="submit" disabled={isCreating} className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
-        {isCreating ? "Creating..." : "Create app"}
-      </button>
+
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isCreating}
+          className="rounded-lg bg-[#1746A2] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isCreating ? "Creating..." : "Create app"}
+        </button>
+        <p className="text-xs text-slate-400">
+          Developer name, logo, permissions, and other details can be filled in after creation.
+        </p>
+      </div>
+
       {createdSlug && (
         <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-          <p className="font-semibold">App created.</p>
+          <p className="font-semibold">App created successfully.</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <a href={`/loan-apps/${createdSlug}`} className="rounded border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">Open profile</a>
-            <a href={`/loan-apps/${createdSlug}/submit-review`} className="rounded border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">Open review form</a>
+            <a href={`/loan-apps/${createdSlug}`} className="rounded border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
+              Open profile
+            </a>
+            <a href={`/loan-apps/${createdSlug}/submit-review`} className="rounded border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
+              Open review form
+            </a>
           </div>
         </div>
       )}

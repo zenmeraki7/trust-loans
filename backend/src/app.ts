@@ -23,7 +23,17 @@ import { env } from "./config/env.js";
 export const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: env.corsOrigin, credentials: true }));
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin || env.corsOrigins.includes(origin.replace(/\/+$/, ""))) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+}));
 app.use(express.json({ limit: "1mb" }));
 app.use(optionalAuth);
 
