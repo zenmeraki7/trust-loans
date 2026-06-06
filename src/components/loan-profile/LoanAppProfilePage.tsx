@@ -67,7 +67,7 @@ function AppSummaryCard({ app }: { app: AppProfile }) {
   return (
     <aside className="sticky top-20 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="text-center">
-        <img src={app.logoUrl} alt={`${app.name} logo`} className="mx-auto h-20 w-20 rounded-2xl border border-slate-200 object-cover" />
+        <img src={app.logoUrl} alt={`${app.name} logo`} className="mx-auto h-20 w-20 rounded-2xl border border-slate-200 bg-white p-2 object-contain" />
         <h2 className="mt-4 text-2xl font-bold text-slate-950">{app.name}</h2>
         <p className="mt-1 text-sm text-slate-600">{app.companyName || app.developerName}</p>
         <div className="mt-3 flex items-center justify-center gap-2">

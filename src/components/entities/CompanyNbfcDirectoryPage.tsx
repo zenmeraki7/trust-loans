@@ -149,7 +149,7 @@ function AddNbfcCompanyForm({ onCancel, onCreated }: { onCancel: () => void; onC
               <input type="file" accept="image/*" onChange={(event) => void updateLogoChoice(event)} className="sr-only" />
             </label>
           </div>
-          {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
+          {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Official website</label>

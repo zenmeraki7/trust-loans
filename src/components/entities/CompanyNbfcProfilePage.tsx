@@ -347,7 +347,7 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
                     <input type="file" accept="image/*" onChange={(event) => void updateLogoChoice(event)} className="sr-only" />
                   </label>
                 </div>
-                {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
+                {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
               </div>
               <TextInput label="Official website" value={form.officialWebsite} onChange={(value) => update("officialWebsite", value)} placeholder="https://company.com" />
             </div>
@@ -391,7 +391,7 @@ export function LinkedLoanAppCard({ app }: { app: EntityProfileData["linkedApps"
   return (
     <article className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <img src={app.logoUrl} alt={app.name} className="h-10 w-10 rounded border" />
+        <img src={app.logoUrl} alt={app.name} className="h-10 w-10 rounded border bg-white p-0.5 object-contain" />
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{app.name}</p>
           <p className="text-xs text-slate-600">{app.developerName} • {app.companyName}</p>

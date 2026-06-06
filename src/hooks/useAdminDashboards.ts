@@ -53,6 +53,7 @@ export type CreateAdminLoanAppInput = {
   supportPhone?: string;
   grievanceEmail?: string;
   playStoreUrl?: string;
+  websiteUrl?: string;
   status?: "DRAFT" | "PUBLISHED" | "UNDER_REVIEW" | "HIDDEN" | "ARCHIVED";
   verificationStatus?: "UNVERIFIED" | "PARTIALLY_VERIFIED" | "VERIFIED" | "UNDER_VERIFICATION" | "CONFLICTING_INFORMATION" | "NEEDS_MANUAL_REVIEW";
   claimStatus?: "UNCLAIMED" | "CLAIM_PENDING" | "CLAIMED" | "DISPUTED_CLAIM";
@@ -144,6 +145,17 @@ const buildAdminApps = (items: ApiLoanApp[]): AdminLoanAppDatabase => {
     developerName: app.developerName ?? "Under verification",
     companyName: app.companyName ?? "Under verification",
     claimedNbfcPartner: app.claimedNbfcPartner ?? "Under verification",
+    websiteUrl: app.websiteUrl ?? "",
+    playStoreUrl: app.playStoreUrl ?? "",
+    appStoreUrl: app.appStoreUrl ?? "",
+    grievanceEmail: app.grievanceEmail ?? "",
+    supportEmail: app.supportEmail ?? "",
+    supportPhone: app.supportPhone ?? "",
+    registeredAddress: app.registeredAddress ?? "",
+    summaryNote: app.summaryNote ?? "",
+    publicSafetyNote: app.publicSafetyNote ?? "",
+    complaintVolume: app.complaintSummaries?.reduce((sum, item) => sum + item.count, 0) ?? 0,
+    topComplaintTags: app.complaintSummaries?.map((item) => item.tag).slice(0, 5) ?? [],
     trustScore: app.trustScore,
     riskLevel: asRiskLevel(app.riskLevel),
     reviewCount: app.reviewCount,

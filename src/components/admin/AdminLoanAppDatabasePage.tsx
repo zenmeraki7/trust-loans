@@ -48,7 +48,7 @@ export function ClaimStatusBadge({ status }: { status: ClaimStatus }) {
   return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${cls}`}>{status.replaceAll("_", " ")}</span>;
 }
 
-export function AdminAppsHeader({ stats, onAdd }: { stats: AdminLoanAppDatabase["stats"]; onAdd?: () => void }) {
+export function AdminAppsHeader({ stats, onAdd, onImport }: { stats: AdminLoanAppDatabase["stats"]; onAdd?: () => void; onImport?: () => void }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h1 className="text-2xl font-semibold text-slate-900">Loan App Database</h1>
@@ -57,7 +57,7 @@ export function AdminAppsHeader({ stats, onAdd }: { stats: AdminLoanAppDatabase[
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={onAdd} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Add New App</button>
-        <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Import Apps</button>
+        <button type="button" onClick={onImport} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Import Apps</button>
         <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Export Database</button>
         <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Review Duplicate Records</button>
       </div>
@@ -79,6 +79,30 @@ const defaultCreateForm = {
 
 function slugFromName(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function normalizeUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function isPlayStoreUrl(value: string) {
+  try {
+    return new URL(value).hostname.toLowerCase().includes("play.google.com");
+  } catch {
+    return false;
+  }
+}
+
+function getApiValidationMessage(error: unknown) {
+  const details = (error as { details?: { issues?: Array<{ path?: Array<string | number>; message?: string }> } })?.details;
+  const issue = details?.issues?.[0];
+  if (issue?.message) {
+    const field = issue.path?.slice(1).join(".");
+    return field ? `${field}: ${issue.message}` : issue.message;
+  }
+  return error instanceof Error ? error.message : "Could not create loan app.";
 }
 
 function readImageAsDataUrl(file: File) {
@@ -109,40 +133,54 @@ function CreateLoanAppPanel({
     setForm((current) => ({
       ...current,
       [field]: value,
-      ...(field === "name" && !current.slug ? { slug: slugFromName(value) } : {}),
+      ...(field === "name" ? { slug: slugFromName(value) } : {}),
     }));
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLocalError("");
+    const generatedSlug = slugFromName(form.name);
     if (!form.name) {
       setLocalError("App name is required.");
       return;
     }
-    if (!form.playStoreUrl) {
-      setLocalError("Play Store URL is required.");
+    if (generatedSlug.length < 2) {
+      setLocalError("App name must generate a slug with at least 2 characters.");
       return;
     }
-    await onCreate({
-      slug: form.slug || slugFromName(form.name),
-      name: form.name,
-      logoUrl: form.logoUrl,
-      playStoreUrl: form.playStoreUrl,
-      claimedNbfcPartner: form.claimedNbfcPartner,
-      grievanceEmail: form.grievanceEmail,
-      supportEmail: form.supportEmail,
-      supportPhone: form.supportPhone,
-      status: "PUBLISHED",
-      verificationStatus: "UNDER_VERIFICATION",
-      claimStatus: "UNCLAIMED",
-      riskLevel: "UNDER_REVIEW",
-      trustScore: 50,
-      averageRating: 0,
-      reviewCount: 0,
-    });
-    setCreatedSlug(form.slug || slugFromName(form.name));
-    setForm(defaultCreateForm);
+    if (!form.playStoreUrl) {
+      setLocalError("Play Store or website URL is required.");
+      return;
+    }
+    const appUrl = normalizeUrl(form.playStoreUrl);
+    if (!appUrl) {
+      setLocalError("Play Store or website URL is required.");
+      return;
+    }
+    try {
+      await onCreate({
+        slug: generatedSlug,
+        name: form.name.trim(),
+        ...(form.logoUrl.trim() ? { logoUrl: form.logoUrl.trim() } : {}),
+        ...(isPlayStoreUrl(appUrl) ? { playStoreUrl: appUrl } : { websiteUrl: appUrl }),
+        ...(form.claimedNbfcPartner.trim() ? { claimedNbfcPartner: form.claimedNbfcPartner.trim() } : {}),
+        ...(form.grievanceEmail.trim() ? { grievanceEmail: form.grievanceEmail.trim() } : {}),
+        ...(form.supportEmail.trim() ? { supportEmail: form.supportEmail.trim() } : {}),
+        ...(form.supportPhone.trim() ? { supportPhone: form.supportPhone.trim() } : {}),
+        status: "PUBLISHED",
+        verificationStatus: "UNDER_VERIFICATION",
+        claimStatus: "UNCLAIMED",
+        riskLevel: "UNDER_REVIEW",
+        trustScore: 50,
+        averageRating: 0,
+        reviewCount: 0,
+      });
+      setCreatedSlug(generatedSlug);
+      setForm(defaultCreateForm);
+    } catch (createError) {
+      setLocalError(getApiValidationMessage(createError));
+    }
   };
 
   const updateLogoFile = async (file?: File) => {
@@ -205,13 +243,13 @@ function CreateLoanAppPanel({
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              Play Store URL <span className="text-rose-500">*</span>
+              Play Store or website URL <span className="text-rose-500">*</span>
             </label>
             <input
               value={form.playStoreUrl}
               onChange={(e) => update("playStoreUrl", e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              placeholder="https://play.google.com/store/apps/details?id=..."
+              placeholder="https://play.google.com/... or https://appwebsite.com"
             />
           </div>
 
@@ -230,7 +268,7 @@ function CreateLoanAppPanel({
                 <input type="file" accept="image/*" onChange={(e) => void updateLogoChoice(e)} className="sr-only" />
               </label>
             </div>
-            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
+            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Claimed NBFC partner</label>
@@ -383,7 +421,7 @@ export function AdminAppRecordsTable({
             <tr key={a.id} className="border-b border-slate-100">
               <td className="py-2 pr-3">
                 <div className="flex items-center gap-2">
-                  <img src={a.logoUrl} alt={a.name} className="h-8 w-8 rounded border border-slate-200" />
+                  <img src={a.logoUrl} alt={a.name} className="h-8 w-8 rounded border border-slate-200 bg-white p-0.5 object-contain" />
                   <span className="font-medium text-slate-900">{a.name}</span>
                 </div>
               </td>
@@ -402,9 +440,7 @@ export function AdminAppRecordsTable({
                 <div className="flex gap-1">
                   <button onClick={() => onSelect(a.id)} className="rounded border border-slate-300 px-2 py-1">View</button>
                   <a href={`/loan-apps/${a.slug}/submit-review`} className="rounded border border-slate-300 px-2 py-1">Review form</a>
-                  <button className="rounded border border-slate-300 px-2 py-1">Edit</button>
                   <button className="rounded border border-slate-300 px-2 py-1">Verify</button>
-                  <button className="rounded border border-slate-300 px-2 py-1">Merge</button>
                 </div>
               </td>
             </tr>
@@ -644,23 +680,142 @@ export function EmptyState() {
   );
 }
 
-export function AppDetailEditorDrawer({ data }: { data: AdminLoanAppDatabase["selectedApp"] }) {
+type AppEditorTab = "basic" | "company" | "grievance" | "risk" | "audit";
+
+export function AppDetailEditorDrawer({ data, onClose }: { data: AdminLoanAppDatabase["selectedApp"]; onClose: () => void }) {
+  const [tab, setTab] = useState<AppEditorTab>("basic");
+  const tabs: Array<{ id: AppEditorTab; label: string }> = [
+    { id: "basic", label: "Basic details" },
+    { id: "company", label: "Company & NBFC" },
+    { id: "grievance", label: "Grievance officer" },
+    { id: "risk", label: "Risk & complaints" },
+    { id: "audit", label: "Audit log" },
+  ];
+
   return (
-    <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <BasicAppIdentityForm data={data.basicIdentity} />
-      <CompanyDetailsForm data={data.companyDetails} />
-      <AppStoreLinksForm data={data.appStoreLinks} />
-      <NbfcPartnerForm data={data.nbfcPartner} />
-      <GrievanceOfficerForm data={data.grievanceOfficer} />
-      <AliasDuplicateManager aliases={data.aliases} duplicates={data.duplicateCandidates} />
-      <VerificationSourcesPanel sources={data.verificationSources} />
-      <RiskMetadataPanel data={data.riskMetadata} />
-      <PublicProfilePreview appName={data.basicIdentity.name} />
-      <AppAuditLog items={data.auditLog} />
-      <BulkImportAppsPanel />
-      <AdminPermissionNotice />
-    </section>
+    <div className="fixed inset-0 z-50 bg-slate-950/40">
+      <section className="ml-auto flex h-full w-full max-w-5xl flex-col overflow-hidden bg-slate-100 shadow-2xl">
+        <div className="border-b border-slate-200 bg-white p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Edit loan app</p>
+              <h2 className="mt-1 text-xl font-semibold text-slate-900">{data.basicIdentity.name}</h2>
+              <p className="mt-1 text-xs text-slate-500">{data.basicIdentity.slug}</p>
+            </div>
+            <button type="button" onClick={onClose} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">
+              Close
+            </button>
+          </div>
+          <div className="mt-4 flex gap-2 overflow-x-auto">
+            {tabs.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTab(item.id)}
+                className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold ${tab === item.id ? "bg-slate-900 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {tab === "basic" ? (
+            <div className="space-y-3">
+              <BasicAppIdentityForm data={data.basicIdentity} />
+              <AppStoreLinksForm data={data.appStoreLinks} />
+              {(data.aliases.length > 0 || data.duplicateCandidates.length > 0) ? <AliasDuplicateManager aliases={data.aliases} duplicates={data.duplicateCandidates} /> : null}
+            </div>
+          ) : null}
+
+          {tab === "company" ? (
+            <div className="space-y-3">
+              <CompanyDetailsForm data={data.companyDetails} />
+              <NbfcPartnerForm data={data.nbfcPartner} />
+            </div>
+          ) : null}
+
+          {tab === "grievance" ? <GrievanceOfficerForm data={data.grievanceOfficer} /> : null}
+
+          {tab === "risk" ? <RiskMetadataPanel data={data.riskMetadata} /> : null}
+
+          {tab === "audit" ? (
+            <div className="space-y-3">
+              <AppAuditLog items={data.auditLog} />
+              <details className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-900">Verification sources</summary>
+                <div className="mt-3">
+                  <VerificationSourcesPanel sources={data.verificationSources} />
+                </div>
+              </details>
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </div>
   );
+}
+
+function mergeSelectedAppDetail(data: AdminLoanAppDatabase, selectedId: string) {
+  const selected = data.apps.find((app) => app.id === selectedId);
+  if (!selected) return data.selectedApp;
+
+  return {
+    ...data.selectedApp,
+    id: selected.id,
+    basicIdentity: {
+      ...data.selectedApp.basicIdentity,
+      name: selected.name,
+      slug: selected.slug,
+      logoUrl: selected.logoUrl,
+      packageName: selected.packageName,
+      platform: selected.platform,
+      shortDescription: selected.summaryNote || "Public details are maintained from database records.",
+      profileStatus: selected.profileStatus,
+    },
+    companyDetails: {
+      ...data.selectedApp.companyDetails,
+      developerName: selected.developerName,
+      legalCompanyName: selected.companyName,
+      website: selected.websiteUrl ?? "",
+      supportEmail: selected.supportEmail ?? "",
+      supportPhone: selected.supportPhone ?? "",
+      registeredAddress: selected.registeredAddress ?? "",
+      sourceUrl: selected.websiteUrl ?? "",
+    },
+    appStoreLinks: {
+      ...data.selectedApp.appStoreLinks,
+      playStoreUrl: selected.playStoreUrl ?? "",
+      appStoreUrl: selected.appStoreUrl ?? "",
+      websiteAppUrl: selected.websiteUrl ?? "",
+      lastCheckedAt: selected.lastUpdated,
+    },
+    nbfcPartner: {
+      ...data.selectedApp.nbfcPartner,
+      name: selected.claimedNbfcPartner,
+      sourceUrl: selected.websiteUrl || selected.playStoreUrl || selected.appStoreUrl || "",
+      lastVerifiedAt: selected.lastUpdated,
+    },
+    grievanceOfficer: {
+      ...data.selectedApp.grievanceOfficer,
+      email: selected.grievanceEmail || selected.supportEmail || "",
+      phone: selected.supportPhone ?? "",
+      address: selected.registeredAddress ?? "",
+      sourceUrl: selected.websiteUrl ?? "",
+      verifiedAt: selected.lastUpdated,
+      publicVisible: Boolean(selected.grievanceEmail || selected.supportEmail),
+    },
+    riskMetadata: {
+      ...data.selectedApp.riskMetadata,
+      riskLevel: selected.riskLevel,
+      trustScore: selected.trustScore,
+      reviewCount: selected.reviewCount,
+      complaintVolume: selected.complaintVolume ?? 0,
+      topComplaintTags: selected.topComplaintTags ?? [],
+      manualRiskNote: selected.publicSafetyNote ?? "",
+    },
+  };
 }
 
 export default function AdminLoanAppDatabasePage({
@@ -674,15 +829,16 @@ export default function AdminLoanAppDatabasePage({
   isCreating?: boolean;
   onCreateApp?: (input: CreateAdminLoanAppInput) => Promise<unknown>;
 }) {
-  const [selectedId, setSelectedId] = useState(data.selectedApp.id);
+  const [selectedId, setSelectedId] = useState("");
   const [filters, setFilters] = useState({});
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const filteredApps = useMemo(() => applyGlobalFilters(data.apps, adminAppDbFilterSchema, filters), [data.apps, filters]);
-  void selectedId;
+  const selectedDetail = selectedId ? mergeSelectedAppDetail(data, selectedId) : null;
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
       <div className="mx-auto max-w-[1700px] space-y-4">
-        <AdminAppsHeader stats={data.stats} onAdd={() => setShowCreate(true)} />
+        <AdminAppsHeader stats={data.stats} onAdd={() => setShowCreate(true)} onImport={() => setShowImport((value) => !value)} />
         {showCreate && onCreateApp && (
           <CreateLoanAppPanel
             error={createError}
@@ -691,14 +847,11 @@ export default function AdminLoanAppDatabasePage({
             onCreate={onCreateApp}
           />
         )}
+        {showImport ? <BulkImportAppsPanel /> : null}
         <GlobalFilterPanel schema={adminAppDbFilterSchema} state={filters} onChange={setFilters} />
         <AdminAppSearchFilters />
-        <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[1.2fr_1fr]">
-          <div className="space-y-4">
-            <AdminAppRecordsTable apps={filteredApps} onSelect={setSelectedId} />
-          </div>
-          <AppDetailEditorDrawer data={data.selectedApp} />
-        </div>
+        <AdminAppRecordsTable apps={filteredApps} onSelect={setSelectedId} />
+        {selectedDetail ? <AppDetailEditorDrawer data={selectedDetail} onClose={() => setSelectedId("")} /> : null}
       </div>
     </main>
   );
