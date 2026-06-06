@@ -38,6 +38,17 @@ export type AdminLoanAppDatabase = {
     developerName: string;
     companyName: string;
     claimedNbfcPartner: string;
+    websiteUrl?: string;
+    playStoreUrl?: string;
+    appStoreUrl?: string;
+    grievanceEmail?: string;
+    supportEmail?: string;
+    supportPhone?: string;
+    registeredAddress?: string;
+    summaryNote?: string;
+    publicSafetyNote?: string;
+    complaintVolume?: number;
+    topComplaintTags?: string[];
     trustScore: number;
     riskLevel: RiskLevel;
     reviewCount: number;
