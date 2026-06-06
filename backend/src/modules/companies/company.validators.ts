@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
+const logoValueSchema = z.string().url().or(z.string().regex(/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/));
 
 export const enrichCompanyProfileSchema = z.object({
   params: z.object({ id: z.string().min(1) }),
   body: z.object({
-    logoUrl: z.preprocess(emptyToUndefined, z.string().url().optional()),
+    logoUrl: z.preprocess(emptyToUndefined, logoValueSchema.optional()),
     officialWebsite: z.preprocess(emptyToUndefined, z.string().url().optional()),
     supportEmail: z.preprocess(emptyToUndefined, z.string().email().optional()),
     grievanceEmail: z.preprocess(emptyToUndefined, z.string().email().optional()),

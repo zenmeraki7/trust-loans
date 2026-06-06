@@ -2,6 +2,8 @@ import { z } from "zod";
 import { ClaimStatus, ProfileStatus, RiskLevel, VerificationStatus } from "@prisma/client";
 import { paginationQuerySchema } from "../../utils/pagination.js";
 
+const logoValueSchema = z.string().url().or(z.string().regex(/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/));
+
 export const listLoanAppsSchema = z.object({
   query: paginationQuerySchema.extend({
     q: z.string().optional(),
@@ -36,7 +38,7 @@ export const createLoanAppSchema = z.object({
   body: z.object({
     slug: z.string().min(2).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only"),
     name: z.string().min(2),
-    logoUrl: z.string().url().optional(),
+    logoUrl: logoValueSchema.optional(),
     packageName: z.string().optional(),
     developerName: z.string().optional(),
     companyName: z.string().optional(),

@@ -81,6 +81,15 @@ function slugFromName(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+function readImageAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function CreateLoanAppPanel({
   error,
   isCreating,
@@ -134,6 +143,20 @@ function CreateLoanAppPanel({
     });
     setCreatedSlug(form.slug || slugFromName(form.name));
     setForm(defaultCreateForm);
+  };
+
+  const updateLogoFile = async (file?: File) => {
+    setLocalError("");
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setLocalError("Logo file must be an image.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setLocalError("Logo image must be smaller than 4 MB.");
+      return;
+    }
+    update("logoUrl", await readImageAsDataUrl(file));
   };
 
   return (
@@ -194,6 +217,16 @@ function CreateLoanAppPanel({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               placeholder="https://example.com/logo.png"
             />
+            <label className="mt-2 block">
+              <span className="mb-1 block text-xs font-medium text-slate-500">Or upload logo image</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => void updateLogoFile(e.target.files?.[0])}
+                className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+              />
+            </label>
+            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Claimed NBFC partner</label>

@@ -223,6 +223,7 @@ function makeEnrichmentForm(data: EntityProfileData): EnrichmentForm {
 
 function isValidOptionalUrl(value: string) {
   if (!value) return true;
+  if (/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/.test(value)) return true;
   try {
     new URL(value);
     return true;
@@ -233,6 +234,15 @@ function isValidOptionalUrl(value: string) {
 
 function isValidOptionalEmail(value: string) {
   return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function readImageAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read image file."));
+    reader.readAsDataURL(file);
+  });
 }
 
 function TextInput({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: string }) {
@@ -251,6 +261,20 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
   const [isSaving, setIsSaving] = useState(false);
 
   const update = (field: keyof EnrichmentForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
+
+  const updateLogoFile = async (file?: File) => {
+    setError("");
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Logo file must be an image.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setError("Logo image must be smaller than 4 MB.");
+      return;
+    }
+    update("logoUrl", await readImageAsDataUrl(file));
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -296,7 +320,19 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
           <section className="rounded-2xl border border-slate-200 p-4">
             <h3 className="text-sm font-semibold text-slate-800">Basic Info</h3>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <TextInput label="Logo URL" value={form.logoUrl} onChange={(value) => update("logoUrl", value)} placeholder="https://example.com/logo.png" />
+              <div>
+                <TextInput label="Logo URL" value={form.logoUrl} onChange={(value) => update("logoUrl", value)} placeholder="https://example.com/logo.png" />
+                <label className="mt-2 block">
+                  <span className="mb-1 block text-xs font-medium text-slate-500">Or upload logo image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => void updateLogoFile(event.target.files?.[0])}
+                    className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+                  />
+                </label>
+                {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 object-cover" /> : null}
+              </div>
               <TextInput label="Official website" value={form.officialWebsite} onChange={(value) => update("officialWebsite", value)} placeholder="https://company.com" />
             </div>
             <label className="mt-3 block">
