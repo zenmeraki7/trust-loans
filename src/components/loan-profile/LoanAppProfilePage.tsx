@@ -20,12 +20,13 @@ const statusMap: Record<AppProfile["status"], { label: string; classes: string }
 };
 
 function RatingStars({ rating, size = "text-base" }: { rating: number; size?: string }) {
-  const rounded = Math.round(rating);
+  const safeRating = Number.isFinite(rating) ? Math.max(0, Math.min(5, rating)) : 0;
+  const rounded = Math.round(safeRating);
   return (
-    <div className={`flex items-center gap-0.5 ${size}`} aria-label={`${rating.toFixed(1)} out of 5 stars`}>
+    <div className={`flex items-center gap-0.5 ${size}`} aria-label={`${safeRating.toFixed(1)} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((star) => (
         <span key={star} className={star <= rounded ? "text-amber-400" : "text-slate-300"} aria-hidden="true">
-          ★
+          {"\u2605"}
         </span>
       ))}
     </div>
@@ -46,21 +47,6 @@ function scoreTone(score: number) {
   if (score >= 70) return "bg-emerald-500";
   if (score >= 40) return "bg-amber-500";
   return "bg-rose-500";
-}
-
-function getRatingDistribution(averageRating: number) {
-  const five = Math.max(35, Math.min(72, Math.round(averageRating * 12)));
-  const four = Math.max(12, Math.min(35, Math.round((5 - Math.abs(4 - averageRating)) * 5)));
-  const three = Math.max(8, Math.min(24, 100 - five - four - 18));
-  const two = Math.max(5, Math.min(16, Math.round((5 - averageRating) * 3)));
-  const one = Math.max(4, 100 - five - four - three - two);
-  return [
-    ["5-star", five],
-    ["4-star", four],
-    ["3-star", three],
-    ["2-star", two],
-    ["1-star", one],
-  ] as const;
 }
 
 function AppSummaryCard({ app }: { app: AppProfile }) {
@@ -133,7 +119,6 @@ function AppSummaryCard({ app }: { app: AppProfile }) {
 }
 
 function RatingsOverview({ app }: { app: AppProfile }) {
-  const distribution = getRatingDistribution(app.averageRating);
   return (
     <section className="grid gap-4 md:grid-cols-[0.95fr_1.05fr]">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -148,17 +133,9 @@ function RatingsOverview({ app }: { app: AppProfile }) {
             <p className="text-xs text-slate-500">TrustScore</p>
           </div>
         </div>
-        <div className="mt-5 space-y-2">
-          {distribution.map(([label, value]) => (
-            <div key={label} className="grid grid-cols-[58px_1fr_42px] items-center gap-3 text-xs">
-              <span className="font-medium text-slate-600">{label}</span>
-              <div className="h-2 rounded-full bg-slate-100">
-                <div className="h-2 rounded-full bg-blue-700" style={{ width: `${value}%` }} />
-              </div>
-              <span className="text-right text-slate-500">{value}%</span>
-            </div>
-          ))}
-        </div>
+        <p className="mt-5 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+          Star distribution is hidden until all public review counts are available from the backend. The reviews below are moderated public reviews only.
+        </p>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLoanAppProfile } from "@/hooks/useLoanAppProfile";
 import { useReviewSafetyScan } from "@/hooks/useReviewSafetyScan";
@@ -41,7 +42,7 @@ function StarRow({
             className={i <= value ? "text-amber-500" : "text-slate-300"}
             aria-label={`${label} ${i} stars`}
           >
-            ★
+            {"\u2605"}
           </button>
         ))}
       </div>
@@ -421,10 +422,12 @@ export function ReviewSubmitSidebar({
   canSubmit,
   onSubmit,
   onSaveDraft,
+  profileUrl,
 }: {
   canSubmit: boolean;
   onSubmit: () => void;
   onSaveDraft: () => void;
+  profileUrl: string;
 }) {
   return (
     <aside className="sticky top-6 space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -432,7 +435,7 @@ export function ReviewSubmitSidebar({
       <p className="text-sm text-slate-600">Your review helps identify complaint patterns and risk signals for other borrowers.</p>
       <button onClick={onSubmit} disabled={!canSubmit} className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Submit Review</button>
       <button onClick={onSaveDraft} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">Save Draft</button>
-      <Link href="#" className="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700">Back to App Profile</Link>
+      <Link href={profileUrl} className="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700">Back to App Profile</Link>
       <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
         After submit: "Your review has been submitted for moderation."
       </p>
@@ -501,19 +504,37 @@ const createInitialSubmission = (appId: string): ReviewSubmission => ({
 });
 
 function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
+  const router = useRouter();
   const submitReview = useSubmitReview();
   const safetyScan = useReviewSafetyScan();
   const createUploadUrl = useCreateEvidenceUploadUrl();
   const completeUpload = useCompleteEvidenceUpload();
   const [submission, setSubmission] = useState<ReviewSubmission>(() => createInitialSubmission(appContext.appId));
   const [submitStatus, setSubmitStatus] = useState<string>("");
+  const [submittedReviewId, setSubmittedReviewId] = useState<string>("");
   const [evidenceStatuses, setEvidenceStatuses] = useState<Array<{ fileName: string; status: string }>>([]);
   const [localScan, setLocalScan] = useState(() => scanReviewTextLocally({ title: "", body: "" }));
 
   const canSubmit = useMemo(() => {
     const c = submission.confirmations;
-    return Boolean(submission.rating.overall && submission.title.trim() && submission.body.trim() && c.ownExperience && c.notLegalComplaint && c.noPrivateInfo && c.moderationAccepted && c.noFalseClaims);
-  }, [submission]);
+    const title = submission.title.trim();
+    const body = submission.body.trim();
+    return Boolean(
+      appContext.appId &&
+        submission.rating.overall >= 1 &&
+        submission.rating.overall <= 5 &&
+        title.length >= 3 &&
+        title.length <= 180 &&
+        body.length >= 20 &&
+        body.length <= 10000 &&
+        submission.tags.length <= 20 &&
+        c.ownExperience &&
+        c.notLegalComplaint &&
+        c.noPrivateInfo &&
+        c.moderationAccepted &&
+        c.noFalseClaims,
+    );
+  }, [appContext.appId, submission]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -542,6 +563,8 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
           }
           submitReview.mutate(submission, {
             onSuccess: async (data) => {
+              const successUrl = `/loan-apps/${appContext.appId}/submit-review/success?reviewId=${encodeURIComponent(data.id)}`;
+              setSubmittedReviewId(data.id);
               setSubmitStatus(data.message || "Your review has been submitted for moderation.");
               if (submission.evidenceFiles.length > 0) {
                 setSubmitStatus("Review submitted. Uploading evidence metadata...");
@@ -565,13 +588,15 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
                       sensitiveFlags: [],
                     });
                     statusRows.push({ fileName, status: "SCAN_PENDING" });
-                  } catch {
-                    statusRows.push({ fileName, status: "FAILED" });
+                  } catch (error) {
+                    const message = error instanceof Error ? error.message : "Evidence upload failed";
+                    statusRows.push({ fileName, status: `FAILED: ${message}` });
                   }
                 }
                 setEvidenceStatuses(statusRows);
                 setSubmitStatus("Review submitted. Evidence metadata recorded privately.");
               }
+              router.push(successUrl);
             },
           });
         },
@@ -617,7 +642,7 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
                 </div>
               )}
               <p className="text-xs">Status: submitted for moderation. It will not appear publicly until approved.</p>
-              <Link href={`${appContext.profileUrl}/submit-review/success`} className="inline-block rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
+              <Link href={`/loan-apps/${appContext.appId}/submit-review/success${submittedReviewId ? `?reviewId=${encodeURIComponent(submittedReviewId)}` : ""}`} className="inline-block rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
                 Open submit review success page
               </Link>
             </div>
@@ -661,7 +686,7 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
             />
           </div>
           <div className="hidden lg:block">
-            <ReviewSubmitSidebar canSubmit={canSubmit && !submitReview.isPending} onSubmit={onSubmit} onSaveDraft={onSaveDraft} />
+            <ReviewSubmitSidebar canSubmit={canSubmit && !submitReview.isPending} onSubmit={onSubmit} onSaveDraft={onSaveDraft} profileUrl={appContext.profileUrl} />
           </div>
         </div>
       </div>
@@ -697,7 +722,7 @@ export default function SubmitLoanAppReviewPage({ slug }: { slug: string }) {
         appLogoUrl: app.logoUrl,
         trustScore: app.trustScore,
         riskLevel: app.riskLevel,
-        profileUrl: `/loan-apps/${slug}`,
+        profileUrl: `/loan-apps/${app.id}`,
       }}
     />
   );

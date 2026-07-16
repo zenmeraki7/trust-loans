@@ -4,17 +4,14 @@ type PageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    reviewId?: string;
+  }>;
 };
 
-export default async function Page({ params }: PageProps) {
+export default async function Page({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const app = {
-    id,
-    name: "Selected loan app",
-    developerName: "Under verification",
-    playStoreUrl: "",
-    appStoreUrl: "",
-  };
+  const { reviewId } = await searchParams;
 
-  return <SubmitReviewSuccessPage app={app} />;
+  return <SubmitReviewSuccessPage appId={id} reviewId={reviewId} />;
 }

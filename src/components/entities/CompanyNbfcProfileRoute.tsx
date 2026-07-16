@@ -3,11 +3,13 @@
 
 import CompanyNbfcProfilePage from "@/components/entities/CompanyNbfcProfilePage";
 import { useCompanyProfile } from "@/hooks/useCompanyProfile";
+import { getPaydayNbfcProfile } from "@/data/paydayLoanNbfcs";
 
 export default function CompanyNbfcProfileRoute({ slug }: { slug: string }) {
   const profile = useCompanyProfile(slug);
+  const paydayProfile = getPaydayNbfcProfile(slug);
 
-  if (profile.isLoading) {
+  if (profile.isLoading && !paydayProfile) {
     return (
       <main className="min-h-screen bg-slate-50 p-6">
         <section className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
@@ -17,7 +19,7 @@ export default function CompanyNbfcProfileRoute({ slug }: { slug: string }) {
     );
   }
 
-  if (profile.isError || !profile.data) {
+  if ((profile.isError || !profile.data) && !paydayProfile) {
     return (
       <main className="min-h-screen bg-slate-50 p-6">
         <section className="mx-auto max-w-5xl rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center text-sm text-rose-900">
@@ -30,5 +32,5 @@ export default function CompanyNbfcProfileRoute({ slug }: { slug: string }) {
     );
   }
 
-  return <CompanyNbfcProfilePage data={profile.data} onEnriched={() => profile.refetch()} />;
+  return <CompanyNbfcProfilePage data={paydayProfile ?? profile.data!} onEnriched={() => profile.refetch()} />;
 }

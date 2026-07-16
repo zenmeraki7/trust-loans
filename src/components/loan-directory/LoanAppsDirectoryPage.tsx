@@ -13,7 +13,7 @@ export function RatingStars({ rating }: { rating: number }) {
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <span key={star} className={star <= rounded ? "text-amber-500" : "text-slate-300"}>
-          ★
+          {"\u2605"}
         </span>
       ))}
     </div>
@@ -24,7 +24,7 @@ export function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
   const map: Record<RiskLevel, string> = {
     low: "bg-emerald-100 text-emerald-700",
     medium: "bg-amber-100 text-amber-700",
-    high: "bg-orange-100 text-orange-700",
+    high: "bg-red-100 text-red-700",
     severe: "bg-rose-100 text-rose-700",
   };
 
@@ -260,7 +260,7 @@ export function LoanAppSortBar({ value, onChange }: { value: string; onChange: (
   );
 }
 
-export function LoanAppResultCard({ app }: { app: LoanAppDirectoryItem }) {
+export function LoanAppResultCard({ app, basePath = "/loan-apps", reviewHref, showRiskWarning = false }: { app: LoanAppDirectoryItem; basePath?: string; reviewHref?: string; showRiskWarning?: boolean }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="flex items-start gap-3">
@@ -279,18 +279,32 @@ export function LoanAppResultCard({ app }: { app: LoanAppDirectoryItem }) {
           </div>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {app.topComplaintTags.map((tag) => (
-          <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">
-            {tag}
-          </span>
-        ))}
-      </div>
-      <p className="mt-3 text-sm text-slate-600">{app.summary}</p>
-      <p className="mt-2 text-xs text-slate-500">Complaint pattern and summary are based on user-submitted reviews and public details. Last updated: {app.lastUpdated}</p>
+      {showRiskWarning && app.riskLevel === "high" ? null : (
+        <>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {app.topComplaintTags.map((tag) => (
+              <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">{tag}</span>
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-slate-600">{app.summary}</p>
+        </>
+      )}
+      {showRiskWarning && app.riskLevel === "high" ? (
+        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-rose-900">Why this app may be risky</p>
+            <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-rose-700">High alert</span>
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {app.topComplaintTags.map((tag) => <span key={tag} className="rounded-full border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-800">{tag}</span>)}
+          </div>
+          <p className="mt-2.5 text-[11px] text-rose-700">Reported indicators under review · Not final legal findings</p>
+        </div>
+      ) : null}
+      {showRiskWarning && app.riskLevel === "high" ? null : <p className="mt-2 text-xs text-slate-500">Complaint pattern and summary are based on user-submitted reviews and public details. Last updated: {app.lastUpdated}</p>}
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link href={`/loan-apps/${app.id}`} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">View Profile</Link>
-        <Link href={`/loan-apps/${app.id}/submit-review`} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Write Review</Link>
+        <Link href={`${basePath}/${app.id}`} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">View Profile</Link>
+        <Link href={reviewHref ?? `${basePath}/${app.id}/submit-review`} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Write Review</Link>
       </div>
     </article>
   );
@@ -361,7 +375,7 @@ export default function LoanAppsDirectoryPage() {
   const verified = searchParams.get("verified") ?? "";
   const sort = searchParams.get("sort") ?? "trust_desc";
   const [queryDraft, setQueryDraft] = useState(query);
-  const { data, isLoading, isError, error, refetch } = useLoanApps({ q: query, riskLevel, sort });
+  const { data, isLoading, isError, error, refetch } = useLoanApps({ q: query, riskLevel, sort, limit: 100 });
 
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams.toString());

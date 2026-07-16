@@ -7,6 +7,7 @@ import { type ChangeEvent, type ClipboardEvent, type FormEvent, useMemo, useStat
 import { apiClient } from "@/lib/apiClient";
 import { useCompanies, type CompanyDirectoryItem } from "@/hooks/useCompanies";
 import type { EntityProfileData } from "@/types/entityProfile";
+import { paydayLoanNbfcs } from "@/data/paydayLoanNbfcs";
 
 function RiskBadge({ level }: { level: CompanyDirectoryItem["riskSignalLevel"] }) {
   const tone = {
@@ -192,7 +193,9 @@ export default function CompanyNbfcDirectoryPage() {
   const [showAddForm, setShowAddForm] = useState(false);
 
   const filteredItems = useMemo(() => {
-    const items = companies.data?.items ?? [];
+    const apiItems = companies.data?.items ?? [];
+    const apiSlugs = new Set(apiItems.map((item) => item.slug));
+    const items = [...apiItems, ...paydayLoanNbfcs.filter((item) => !apiSlugs.has(item.slug))];
     const normalized = query.trim().toLowerCase();
     if (!normalized) return items;
     return items.filter((item) =>
@@ -280,9 +283,6 @@ export default function CompanyNbfcDirectoryPage() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={`/entities/${item.slug}`} className="rounded-xl bg-[#1746A2] px-4 py-2 text-sm font-semibold text-white">
                     View NBFC / Company Profile
-                  </Link>
-                  <Link href={`/loan-apps?q=${encodeURIComponent(item.displayName)}`} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
-                    Linked loan apps
                   </Link>
                 </div>
               </article>

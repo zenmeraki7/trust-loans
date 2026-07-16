@@ -113,6 +113,28 @@ function SectionOne() {
   );
 }
 
+function PaydayAppsDirectoryCta() {
+  return (
+    <section data-testid="payday-app-directory-cta" className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
+      <div className="grid items-center gap-5 p-5 md:grid-cols-[1fr_auto] md:p-6">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            <IconWallet />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Payday app directory</p>
+            <h2 className="mt-1 text-2xl font-bold text-[var(--brand-navy-strong)]">Browse Payday Loan Apps</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Explore 33 payday loan app profiles and the available claimed NBFC details before borrowing.</p>
+          </div>
+        </div>
+        <Link href="/payday-loan-apps" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-700 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800">
+          View Payday Loan Apps
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function SectionTwo() {
   const steps = [
     { t: "Apply", d: "Submit a simple application.", i: <IconShield /> },
@@ -225,6 +247,7 @@ export default function PaydayLoansGuidePage() {
       <TopNav />
       <div className="mx-auto max-w-[1240px] space-y-4 px-4 py-4 md:px-6 md:py-6">
         <Hero />
+        <PaydayAppsDirectoryCta />
         <div className="grid gap-4 md:grid-cols-2">
           <SectionOne />
           <SectionTwo />

@@ -58,7 +58,7 @@ function hasEnrichedDetails(data: EntityProfileData) {
 }
 
 export function EntityHero({ data, onOpenEnrich }: { data: EntityProfileData; onOpenEnrich: () => void }) {
-  const linkedAppsHref = `/loan-apps?q=${encodeURIComponent(data.displayName)}`;
+  const linkedAppsHref = "#linked-apps";
   const logoUrl = getEntityLogo(data);
   const enriched = hasEnrichedDetails(data);
 
@@ -408,14 +408,14 @@ export function LinkedLoanAppCard({ app }: { app: EntityProfileData["linkedApps"
       </div>
       <div className="mt-2 flex gap-2">
         <Link href={app.profileUrl} className="rounded border px-2 py-1 text-xs font-semibold">View App Profile</Link>
-        <Link href={`${app.profileUrl}/submit-review`} className="rounded border px-2 py-1 text-xs font-semibold">Write Review</Link>
+        {!app.profileUrl.startsWith("/payday-loan-apps/") ? <Link href={`${app.profileUrl}/submit-review`} className="rounded border px-2 py-1 text-xs font-semibold">Write Review</Link> : null}
       </div>
     </article>
   );
 }
 
 export function LinkedLoanAppsSection({ apps }: { apps: EntityProfileData["linkedApps"] }) {
-  return <section className="space-y-2"><h2 className="text-lg font-semibold">Linked loan apps</h2><div className="grid grid-cols-1 gap-3 md:grid-cols-2 items-start">{apps.map((a)=><LinkedLoanAppCard key={a.id} app={a} />)}</div></section>;
+  return <section id="linked-apps" className="scroll-mt-24 space-y-2"><h2 className="text-lg font-semibold">Linked loan apps</h2><div className="grid grid-cols-1 gap-3 md:grid-cols-2 items-start">{apps.map((a)=><LinkedLoanAppCard key={a.id} app={a} />)}</div></section>;
 }
 
 export function RelationshipVerificationTable({ rows }: { rows: EntityProfileData["relationshipEvidence"] }) {
