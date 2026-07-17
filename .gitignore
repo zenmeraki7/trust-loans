@@ -1,3 +1,7 @@
+# Environment Configuration
+.env
+.env.*
+
 node_modules
 .next
 out
