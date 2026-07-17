@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { isHighRiskPaydayApp, type PaydayLoanApp } from "@/data/paydayLoanApps";
+import { getPaydayLoanLogo } from "@/data/paydayLoanLogos";
 
 export default function PaydayLoanAppProfilePage({ app }: { app: PaydayLoanApp }) {
   const isHighRisk = isHighRiskPaydayApp(app);
+  const logoUrl = getPaydayLoanLogo(app.id);
   return (
     <main className="min-h-screen bg-slate-50 pb-16">
       <section className="border-b border-slate-200 bg-blue-50 px-4 py-8">
@@ -14,7 +16,11 @@ export default function PaydayLoanAppProfilePage({ app }: { app: PaydayLoanApp }
       </section>
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[320px_1fr]">
         <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-bold text-white">{app.name.slice(0, 2)}</div>
+          {logoUrl ? (
+            <img src={logoUrl} alt={`${app.name} logo`} className="h-24 w-32 rounded-2xl border border-slate-200 bg-white p-2 object-contain" />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-bold text-white">{app.name.slice(0, 2)}</div>
+          )}
           <h2 className="mt-4 text-2xl font-bold">{app.name}</h2>
           <span className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${isHighRisk ? "bg-orange-100 text-orange-800" : "bg-amber-100 text-amber-800"}`}>
             {isHighRisk ? "High Risk" : "Under review"}
