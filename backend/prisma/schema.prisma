@@ -1,0 +1,637 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  name                 String?
+  phone                String?
+  role                 UserRole              @default(USER)
+  status               UserStatus            @default(ACTIVE)
+  emailVerified        Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  complaintDrafts      ComplaintDraft[]
+  corrections          CorrectionRequest[]
+  evidenceFiles        EvidenceFile[]
+  harassmentCases      HarassmentCase[]
+  notifications        Notification[]
+  notificationSettings NotificationSettings?
+  reviews              Review[]
+  reviewReports        ReviewReport[]
+}
+
+model LoanApp {
+  id                 String             @id @default(cuid())
+  slug               String             @unique
+  name               String
+  logoUrl            String?
+  packageName        String?
+  developerName      String?
+  companyName        String?
+  websiteUrl         String?
+  playStoreUrl       String?
+  appStoreUrl        String?
+  claimedNbfcPartner String?
+  status             ProfileStatus      @default(UNDER_REVIEW)
+  verificationStatus VerificationStatus @default(UNDER_VERIFICATION)
+  claimStatus        ClaimStatus        @default(UNCLAIMED)
+  trustScore         Int                @default(0)
+  riskLevel          RiskLevel          @default(INSUFFICIENT_DATA)
+  averageRating      Float              @default(0)
+  reviewCount        Int                @default(0)
+  grievanceEmail     String?
+  supportEmail       String?
+  supportPhone       String?
+  registeredAddress  String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  complaintDrafts    ComplaintDraft[]
+  complaintSummaries ComplaintSummary[]
+  evidenceFiles      EvidenceFile[]
+  harassmentCases    HarassmentCase[]
+  reviews            Review[]
+
+  @@index([status])
+  @@index([riskLevel])
+  @@index([verificationStatus])
+}
+
+model NbfcCompany {
+  id                    String             @id @default(cuid())
+  slug                  String             @unique
+  name                  String
+  logoUrl               String?
+  officialWebsite       String?
+  supportEmail          String?
+  grievanceEmail        String?
+  supportPhone          String?
+  registeredAddress     String?
+  nbfcRegistrationClaim String?
+  companyDescription    String?
+  status                ProfileStatus      @default(PUBLISHED)
+  verificationStatus    VerificationStatus @default(UNDER_VERIFICATION)
+  claimStatus           ClaimStatus        @default(UNCLAIMED)
+  riskLevel             RiskLevel          @default(INSUFFICIENT_DATA)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([status])
+  @@index([verificationStatus])
+  @@index([riskLevel])
+}
+
+model HarassmentCase {
+  id                      String               @id @default(cuid())
+  userId                  String
+  loanAppId               String?
+  title                   String
+  caseType                HarassmentCaseType
+  status                  HarassmentCaseStatus @default(OPEN)
+  priority                CasePriority         @default(NORMAL)
+  summary                 String?
+  incidentDate            DateTime?
+  loanReferenceId         String?
+  loanAmountRange         String?
+  decisionTreeSessionId   String?
+  linkedReviewId          String?
+  linkedEvidenceFileIds   String[]
+  linkedComplaintDraftIds String[]
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  checklistItems          CaseChecklistItem[]
+  timelineItems           CaseTimelineItem[]
+  externalComplaints      ExternalComplaint[]
+  loanApp                 LoanApp?             @relation(fields: [loanAppId], references: [id])
+  user                    User                 @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([loanAppId])
+  @@index([status])
+}
+
+model CaseTimelineItem {
+  id              String           @id @default(cuid())
+  caseId          String
+  type            CaseTimelineType
+  title           String
+  description     String?
+  happenedAt      DateTime?
+  evidenceFileIds String[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  case            HarassmentCase   @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+}
+
+model CaseChecklistItem {
+  id          String         @id @default(cuid())
+  caseId      String
+  label       String
+  description String?
+  completed   Boolean        @default(false)
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  case        HarassmentCase @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+}
+
+model ExternalComplaint {
+  id              String                   @id @default(cuid())
+  caseId          String
+  channel         ExternalComplaintChannel
+  complaintNumber String?
+  submittedAt     DateTime?
+  status          ExternalComplaintStatus  @default(NOT_STARTED)
+  notes           String?
+  documentUrl     String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  case            HarassmentCase           @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+  @@index([channel])
+}
+
+model ComplaintTemplate {
+  id          String                    @id @default(cuid())
+  key         String                    @unique
+  title       String
+  category    ComplaintTemplateCategory
+  description String
+  outputTypes String[]
+  isActive    Boolean                   @default(true)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  drafts      ComplaintDraft[]
+}
+
+model ComplaintDraft {
+  id               String               @id @default(cuid())
+  userId           String
+  templateId       String?
+  loanAppId        String?
+  title            String
+  templateKey      String
+  outputType       ComplaintOutputType
+  status           ComplaintDraftStatus @default(DRAFT)
+  formData         Json
+  generatedSubject String?
+  generatedBody    String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  loanApp          LoanApp?             @relation(fields: [loanAppId], references: [id])
+  template         ComplaintTemplate?   @relation(fields: [templateId], references: [id])
+  user             User                 @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([templateId])
+  @@index([loanAppId])
+  @@index([status])
+}
+
+model Review {
+  id                String            @id @default(cuid())
+  loanAppId         String
+  userId            String?
+  title             String
+  body              String
+  publicBody        String?
+  rating            Int
+  reviewType        ReviewType
+  status            ReviewStatus      @default(SUBMITTED)
+  displayMode       DisplayMode       @default(ANONYMOUS)
+  incidentDate      DateTime?
+  loanAmountRange   String?
+  tags              String[]
+  evidenceSubmitted Boolean           @default(false)
+  redactionsApplied Boolean           @default(false)
+  helpfulCount      Int               @default(0)
+  publishedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  companyResponses  CompanyResponse[]
+  evidenceFiles     EvidenceFile[]
+  loanApp           LoanApp           @relation(fields: [loanAppId], references: [id])
+  user              User?             @relation(fields: [userId], references: [id])
+  reports           ReviewReport[]
+
+  @@index([loanAppId])
+  @@index([userId])
+  @@index([status])
+}
+
+model ReviewReport {
+  id             String             @id @default(cuid())
+  reviewId       String
+  reporterUserId String?
+  reason         String
+  note           String?
+  status         ReviewReportStatus @default(PENDING_REVIEW)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  reporter       User?              @relation(fields: [reporterUserId], references: [id])
+  review         Review             @relation(fields: [reviewId], references: [id])
+
+  @@index([reviewId])
+  @@index([reporterUserId])
+  @@index([status])
+}
+
+model EvidenceFile {
+  id                   String          @id @default(cuid())
+  userId               String?
+  loanAppId            String?
+  reviewId             String?
+  storageKey           String
+  maskedFileName       String
+  originalFileNameHash String?
+  mimeType             String
+  fileSizeBytes        Int
+  status               EvidenceStatus  @default(UPLOADED)
+  privateByDefault     Boolean         @default(true)
+  sensitiveFlags       String[]
+  redactionStatus      RedactionStatus @default(NOT_STARTED)
+  uploadedAt           DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  loanApp              LoanApp?        @relation(fields: [loanAppId], references: [id])
+  review               Review?         @relation(fields: [reviewId], references: [id])
+  user                 User?           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([loanAppId])
+  @@index([reviewId])
+  @@index([status])
+}
+
+model CompanyResponse {
+  id              String                  @id @default(cuid())
+  reviewId        String
+  responderUserId String?
+  companyName     String
+  body            String
+  category        CompanyResponseCategory
+  status          ModerationStatus        @default(PENDING)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  review          Review                  @relation(fields: [reviewId], references: [id])
+
+  @@index([reviewId])
+  @@index([status])
+}
+
+model ComplaintSummary {
+  id               String   @id @default(cuid())
+  loanAppId        String
+  tag              String
+  count            Int      @default(0)
+  percentage       Float    @default(0)
+  lastCalculatedAt DateTime @default(now())
+  loanApp          LoanApp  @relation(fields: [loanAppId], references: [id])
+
+  @@unique([loanAppId, tag])
+  @@index([tag])
+}
+
+model CorrectionRequest {
+  id             String           @id @default(cuid())
+  requesterId    String?
+  requestType    String
+  status         CorrectionStatus @default(SUBMITTED)
+  publicItemType String?
+  publicItemId   String?
+  explanation    String
+  currentValue   String?
+  proposedValue  String?
+  sourceUrl      String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  requester      User?            @relation(fields: [requesterId], references: [id])
+
+  @@index([requesterId])
+  @@index([status])
+  @@index([publicItemType, publicItemId])
+}
+
+model Notification {
+  id         String               @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  message    String
+  priority   NotificationPriority @default(NORMAL)
+  read       Boolean              @default(false)
+  relatedUrl String?
+  createdAt  DateTime             @default(now())
+  user       User                 @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+  @@index([priority])
+}
+
+model NotificationSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  emailEnabled          Boolean  @default(true)
+  inAppEnabled          Boolean  @default(true)
+  reviewStatusUpdates   Boolean  @default(true)
+  companyResponseAlerts Boolean  @default(true)
+  correctionUpdates     Boolean  @default(true)
+  evidenceUpdates       Boolean  @default(true)
+  adminAlerts           Boolean  @default(false)
+  savedAppAlerts        Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  beforeJson Json?
+  afterJson  Json?
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+model ScoringConfig {
+  id                             String   @id @default(cuid())
+  name                           String   @unique
+  active                         Boolean  @default(false)
+  averageRatingWeight            Float    @default(20)
+  reviewVolumeWeight             Float    @default(10)
+  recentComplaintTrendWeight     Float    @default(15)
+  complaintSeverityWeight        Float    @default(20)
+  verifiedBorrowerWeight         Float    @default(5)
+  companyResponseWeight          Float    @default(10)
+  grievanceAvailabilityWeight    Float    @default(10)
+  publicDetailVerificationWeight Float    @default(5)
+  reviewIntegrityWeight          Float    @default(5)
+  severeComplaintPenalty         Float    @default(25)
+  privacyComplaintPenalty        Float    @default(15)
+  hiddenChargeComplaintPenalty   Float    @default(10)
+  staleVerificationPenalty       Float    @default(8)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  SENIOR_MODERATOR
+  DATA_VERIFIER
+  ADMIN
+  SUPER_ADMIN
+  COMPANY_REPRESENTATIVE
+  NBFC_REPRESENTATIVE
+  ANALYST
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  REVOKED
+}
+
+enum HarassmentCaseType {
+  THREAT_CALLS
+  CONTACT_LIST_ABUSE
+  OFFICE_HARASSMENT
+  PHOTO_MORPHING_THREAT
+  DATA_MISUSE
+  FAKE_LEGAL_NOTICE
+  PAYMENT_NOT_UPDATED
+  LOAN_NOT_CLOSED
+  HIDDEN_CHARGES
+  PERSONAL_UPI_PRESSURE
+  OTHER
+}
+
+enum HarassmentCaseStatus {
+  OPEN
+  WAITING_FOR_RESPONSE
+  ACTION_NEEDED
+  RESOLVED
+  ARCHIVED
+}
+
+enum CasePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum CaseTimelineType {
+  LOAN_DISBURSED
+  PAYMENT_DUE
+  PAYMENT_MADE
+  THREAT_RECEIVED
+  CALL_RECEIVED
+  RELATIVE_CONTACTED
+  OFFICE_CONTACTED
+  PHOTO_THREAT_RECEIVED
+  FAKE_LEGAL_NOTICE_RECEIVED
+  COMPLAINT_SENT
+  RESPONSE_RECEIVED
+  EVIDENCE_UPLOADED
+  REVIEW_SUBMITTED
+  OTHER
+}
+
+enum ExternalComplaintChannel {
+  APP_GRIEVANCE_OFFICER
+  RBI_CMS
+  CYBERCRIME_PORTAL
+  CONSUMER_HELPLINE
+  LOCAL_POLICE
+  ADVOCATE
+  APP_STORE_REPORT
+  PLAY_STORE_REPORT
+  OTHER
+}
+
+enum ExternalComplaintStatus {
+  NOT_STARTED
+  DRAFTED
+  SUBMITTED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESPONDED
+  RESOLVED
+  CLOSED
+  UNKNOWN
+}
+
+enum ComplaintTemplateCategory {
+  HARASSMENT
+  PHOTO_MORPHING
+  DATA_MISUSE
+  FAKE_LEGAL_NOTICE
+  HIDDEN_CHARGES
+  PAYMENT_NOT_UPDATED
+  LOAN_NOT_CLOSED
+  GRIEVANCE_ESCALATION
+  RBI_CMS
+  CYBERCRIME
+  CONSUMER_HELPLINE
+  ADVOCATE_BRIEFING
+}
+
+enum ComplaintOutputType {
+  GRIEVANCE_EMAIL
+  RBI_CMS_TEXT
+  CYBERCRIME_TEXT
+  CONSUMER_HELPLINE_TEXT
+  ADVOCATE_BRIEFING_NOTE
+  PERSONAL_RECORD
+}
+
+enum ComplaintDraftStatus {
+  DRAFT
+  COMPLETED
+  ARCHIVED
+  DELETED
+}
+
+enum ProfileStatus {
+  DRAFT
+  PUBLISHED
+  UNDER_REVIEW
+  HIDDEN
+  ARCHIVED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PARTIALLY_VERIFIED
+  VERIFIED
+  UNDER_VERIFICATION
+  CONFLICTING_INFORMATION
+  NEEDS_MANUAL_REVIEW
+}
+
+enum ClaimStatus {
+  UNCLAIMED
+  CLAIM_PENDING
+  CLAIMED
+  DISPUTED_CLAIM
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  SEVERE_COMPLAINT_PATTERN
+  UNDER_REVIEW
+  INSUFFICIENT_DATA
+}
+
+enum ReviewType {
+  GENERAL_REVIEW
+  HARASSMENT_COMPLAINT
+  HIDDEN_CHARGES
+  DATA_PRIVACY
+  PHOTO_MORPHING_THREAT
+  FAKE_LEGAL_NOTICE
+  PAYMENT_ISSUE
+  LOAN_CLOSURE_ISSUE
+  POSITIVE_EXPERIENCE
+}
+
+enum ReviewStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_MODERATION
+  NEEDS_MORE_INFO
+  PUBLISHED
+  PARTIALLY_PUBLISHED
+  REJECTED
+  REMOVED_BY_USER
+  ESCALATED
+}
+
+enum DisplayMode {
+  ANONYMOUS
+  FIRST_NAME_ONLY
+  VERIFIED_BADGE_ONLY
+}
+
+enum ReviewReportStatus {
+  PENDING_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum EvidenceStatus {
+  UPLOADED
+  SCAN_PENDING
+  SENSITIVE_DATA_DETECTED
+  PENDING_REVIEW
+  REDACTION_REQUIRED
+  ACCEPTED_FOR_VERIFICATION
+  PRIVATE_ONLY
+  REJECTED_FOR_SAFETY
+  DELETED
+  SCHEDULED_FOR_DELETION
+  ESCALATED
+}
+
+enum RedactionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  REDACTED
+  APPROVED
+  REJECTED
+}
+
+enum CompanyResponseCategory {
+  CLARIFICATION
+  APOLOGY
+  SUPPORT_OFFERED
+  DISPUTE
+  GENERAL_STATEMENT
+}
+
+enum ModerationStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  ESCALATED
+}
+
+enum CorrectionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  MORE_INFORMATION_NEEDED
+  ACCEPTED
+  PARTIALLY_ACCEPTED
+  REJECTED
+  ESCALATED
+  CLOSED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
