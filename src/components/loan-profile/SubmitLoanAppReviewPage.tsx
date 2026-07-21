@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLoanAppProfile } from "@/hooks/useLoanAppProfile";
 import { useReviewSafetyScan } from "@/hooks/useReviewSafetyScan";
-import { useCompleteEvidenceUpload, useCreateEvidenceUploadUrl } from "@/hooks/useEvidence";
 import { useSubmitReview } from "@/hooks/useSubmitReview";
 import { scanReviewTextLocally } from "@/lib/reviewSafetyScan";
+import { apiClient } from "@/lib/apiClient";
 import SafeReviewWriter from "@/components/tools/SafeReviewWriter";
 import type { AppReviewContext, DisplayMode, ReviewSubmission, ReviewType } from "@/types/reviewSubmission";
 
@@ -286,36 +286,17 @@ export function IssueTagSelector({
   );
 }
 
-export function EvidenceUploader({
-  evidenceFiles,
-  onEvidenceChange,
-}: {
-  evidenceFiles: string[];
-  onEvidenceChange: (files: string[]) => void;
-}) {
+export function EvidenceReminder() {
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold text-slate-900">Evidence upload (optional)</h2>
+      <h2 className="text-lg font-semibold text-slate-900">Evidence reminder</h2>
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <input
-          type="file"
-          multiple
-          onChange={(e) => onEvidenceChange(Array.from(e.target.files ?? []).map((f) => f.name))}
-          className="mb-3 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-white"
-        />
-        {evidenceFiles.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2">
-            {evidenceFiles.map((name) => (
-              <span key={name} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
-                {name}
-              </span>
-            ))}
-          </div>
-        )}
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          Do not upload Aadhaar, PAN, bank statements, private photos, OTPs, passwords, or full phone numbers of private individuals.
+          Trust Loans does not collect, upload, store, verify, certify, preview, scan, redact, transcribe, share, or provide download links for evidence.
         </p>
-        <p className="mt-2 text-xs text-slate-500">Evidence is used for moderation and verification. It may not be shown publicly.</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Keep original screenshots, recordings, call logs, messages, receipts, and documents securely. Submit them directly to the lender, regulator, police, cybercrime authority, court, or other official authority when required.
+        </p>
       </div>
     </section>
   );
@@ -381,10 +362,10 @@ export function PrivacySettingsCard({
             checked={submission.privacy.keepEvidencePrivate}
             onChange={(e) => onKeepEvidencePrivate(e.target.checked)}
           />
-          Keep evidence private
+          I will keep original evidence outside Trust Loans
         </label>
       </div>
-      <p className="mt-3 text-xs text-slate-500">Your contact details will not be publicly displayed.</p>
+      <p className="mt-3 text-xs text-slate-500">Your contact details will not be publicly displayed. Evidence files are not collected by this platform.</p>
     </section>
   );
 }
@@ -399,7 +380,7 @@ export function LegalConfirmationBox({
   const items: Array<{ field: keyof ReviewSubmission["confirmations"]; label: string; checked: boolean }> = [
     { field: "ownExperience", label: "I confirm this review is based on my own experience.", checked: confirmations.ownExperience },
     { field: "notLegalComplaint", label: "I understand this is a public review platform, not a legal complaint portal.", checked: confirmations.notLegalComplaint },
-    { field: "noPrivateInfo", label: "I will not upload private information of other individuals.", checked: confirmations.noPrivateInfo },
+    { field: "noPrivateInfo", label: "I will not include private information of other individuals in my review text.", checked: confirmations.noPrivateInfo },
     { field: "moderationAccepted", label: "I understand my review may be moderated before publication.", checked: confirmations.moderationAccepted },
     { field: "noFalseClaims", label: "I agree not to make false claims.", checked: confirmations.noFalseClaims },
   ];
@@ -507,12 +488,9 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
   const router = useRouter();
   const submitReview = useSubmitReview();
   const safetyScan = useReviewSafetyScan();
-  const createUploadUrl = useCreateEvidenceUploadUrl();
-  const completeUpload = useCompleteEvidenceUpload();
   const [submission, setSubmission] = useState<ReviewSubmission>(() => createInitialSubmission(appContext.appId));
   const [submitStatus, setSubmitStatus] = useState<string>("");
   const [submittedReviewId, setSubmittedReviewId] = useState<string>("");
-  const [evidenceStatuses, setEvidenceStatuses] = useState<Array<{ fileName: string; status: string }>>([]);
   const [localScan, setLocalScan] = useState(() => scanReviewTextLocally({ title: "", body: "" }));
 
   const canSubmit = useMemo(() => {
@@ -566,36 +544,6 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
               const successUrl = `/loan-apps/${appContext.appId}/submit-review/success?reviewId=${encodeURIComponent(data.id)}`;
               setSubmittedReviewId(data.id);
               setSubmitStatus(data.message || "Your review has been submitted for moderation.");
-              if (submission.evidenceFiles.length > 0) {
-                setSubmitStatus("Review submitted. Uploading evidence metadata...");
-                const statusRows: Array<{ fileName: string; status: string }> = [];
-                for (const fileName of submission.evidenceFiles) {
-                  try {
-                    const upload = await createUploadUrl.mutateAsync({
-                      fileName,
-                      mimeType: "image/png",
-                      fileSizeBytes: 1024,
-                      reviewId: data.id,
-                      loanAppId: appContext.appId,
-                    });
-                    await completeUpload.mutateAsync({
-                      storageKey: upload.storageKey,
-                      fileName,
-                      mimeType: "image/png",
-                      fileSizeBytes: 1024,
-                      reviewId: data.id,
-                      loanAppId: appContext.appId,
-                      sensitiveFlags: [],
-                    });
-                    statusRows.push({ fileName, status: "SCAN_PENDING" });
-                  } catch (error) {
-                    const message = error instanceof Error ? error.message : "Evidence upload failed";
-                    statusRows.push({ fileName, status: `FAILED: ${message}` });
-                  }
-                }
-                setEvidenceStatuses(statusRows);
-                setSubmitStatus("Review submitted. Evidence metadata recorded privately.");
-              }
               router.push(successUrl);
             },
           });
@@ -634,13 +582,6 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
           {submitStatus && (
             <div className="mt-3 space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
               <p>{submitStatus}</p>
-              {evidenceStatuses.length > 0 && (
-                <div className="space-y-1 text-xs">
-                  {evidenceStatuses.map((row) => (
-                    <p key={row.fileName}>{row.fileName}: {row.status}</p>
-                  ))}
-                </div>
-              )}
               <p className="text-xs">Status: submitted for moderation. It will not appear publicly until approved.</p>
               <Link href={`/loan-apps/${appContext.appId}/submit-review/success${submittedReviewId ? `?reviewId=${encodeURIComponent(submittedReviewId)}` : ""}`} className="inline-block rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
                 Open submit review success page
@@ -673,7 +614,7 @@ function SubmitReviewForm({ appContext }: { appContext: AppReviewContext }) {
                 }))
               }
             />
-            <EvidenceUploader evidenceFiles={submission.evidenceFiles} onEvidenceChange={(files) => setSubmission((s) => ({ ...s, evidenceFiles: files }))} />
+            <EvidenceReminder />
             <PrivacySettingsCard
               submission={submission}
               onDisplayMode={(mode) => setSubmission((s) => ({ ...s, privacy: { ...s.privacy, displayMode: mode } }))}
@@ -702,8 +643,12 @@ export default function SubmitLoanAppReviewPage({ slug }: { slug: string }) {
   const app = profileQuery.data?.app;
 
   useEffect(() => {
-    setIsAuthenticated(Boolean(localStorage.getItem("trust-loans-auth")));
-    setAuthChecked(true);
+    let active = true;
+    apiClient<{ user: { id: string } }>("/api/auth/session")
+      .then(() => { if (active) setIsAuthenticated(true); })
+      .catch(() => { if (active) setIsAuthenticated(false); })
+      .finally(() => { if (active) setAuthChecked(true); });
+    return () => { active = false; };
   }, []);
 
   if (!authChecked) {

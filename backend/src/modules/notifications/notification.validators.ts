@@ -20,7 +20,7 @@ export const listNotificationsSchema = z.object({
 });
 
 export const notificationIdParamSchema = z.object({
-  params: z.object({ id: z.string().min(1) }),
+  params: z.object({ id: z.string().min(1) }).strict(),
 });
 
 export const updateNotificationSettingsSchema = z.object({
@@ -33,8 +33,7 @@ export const updateNotificationSettingsSchema = z.object({
     evidenceUpdates: z.boolean().optional(),
     adminAlerts: z.boolean().optional(),
     savedAppAlerts: z.boolean().optional(),
-  }),
+  }).strict(),
 });
 
 export type UpdateNotificationSettingsInput = z.infer<typeof updateNotificationSettingsSchema>["body"];
-

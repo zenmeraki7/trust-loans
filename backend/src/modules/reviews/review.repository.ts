@@ -3,11 +3,11 @@ import { prisma } from "../../prisma/client.js";
 import type { CreateReviewInput, ReportReviewInput } from "./review.validators.js";
 
 export const reviewRepository = {
-  create(input: CreateReviewInput) {
+  create(userId: string, input: CreateReviewInput) {
     return prisma.review.create({
       data: {
         loanAppId: input.loanAppId,
-        userId: input.userId,
+        userId,
         title: input.title,
         body: input.body,
         rating: input.rating,
@@ -16,7 +16,7 @@ export const reviewRepository = {
         incidentDate: input.incidentDate,
         loanAmountRange: input.loanAmountRange,
         tags: input.tags,
-        evidenceSubmitted: input.evidenceSubmitted,
+        evidenceSubmitted: false,
         status: ReviewStatus.SUBMITTED,
       },
     });
@@ -32,27 +32,13 @@ export const reviewRepository = {
     });
   },
 
-  findById(id: string) {
-    return prisma.review.findUnique({ where: { id } });
-  },
-
-  incrementHelpful(id: string) {
-    return prisma.review.update({
-      where: { id },
+  async incrementHelpfulPublic(id: string) {
+    const result = await prisma.review.updateMany({
+      where: { id, status: { in: [ReviewStatus.PUBLISHED, ReviewStatus.PARTIALLY_PUBLISHED] } },
       data: { helpfulCount: { increment: 1 } },
     });
-  },
-
-  updateStatus(input: { id: string; status: ReviewStatus; publicBody?: string | null; redactionsApplied?: boolean; publishedAt?: Date | null }) {
-    return prisma.review.update({
-      where: { id: input.id },
-      data: {
-        status: input.status,
-        publicBody: input.publicBody,
-        redactionsApplied: input.redactionsApplied,
-        publishedAt: input.publishedAt,
-      },
-    });
+    if (result.count !== 1) return null;
+    return this.findPublicById(id);
   },
 
   createReport(input: ReportReviewInput & { reporterUserId?: string }) {

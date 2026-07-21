@@ -1,4 +1,4 @@
-import { EvidenceStatus, ReviewStatus, RiskLevel } from "@prisma/client";
+import { ReviewStatus, RiskLevel } from "@prisma/client";
 
 const riskLevelMap: Record<RiskLevel, "low" | "medium" | "high" | "severe"> = {
   LOW: "low",
@@ -21,24 +21,7 @@ const reviewStatusMap: Record<ReviewStatus, string> = {
   ESCALATED: "under_moderation",
 };
 
-const pendingEvidenceStatuses = new Set<EvidenceStatus>([
-  "UPLOADED",
-  "SCAN_PENDING",
-  "SENSITIVE_DATA_DETECTED",
-  "PENDING_REVIEW",
-  "REDACTION_REQUIRED",
-  "ESCALATED",
-]);
-
 export const toDashboardReviewStatus = (status: ReviewStatus) => reviewStatusMap[status];
-
-export const toDashboardEvidenceStatus = (statuses: EvidenceStatus[]) => {
-  if (statuses.length === 0) return "none";
-  if (statuses.some((status) => status === "REJECTED_FOR_SAFETY")) return "rejected_for_safety";
-  if (statuses.some((status) => status === "ACCEPTED_FOR_VERIFICATION")) return "accepted_for_verification";
-  if (statuses.some((status) => pendingEvidenceStatuses.has(status))) return "under_review";
-  return "private";
-};
 
 export const toDashboardRiskLevel = (riskLevel: RiskLevel) => riskLevelMap[riskLevel];
 

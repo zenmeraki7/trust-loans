@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { type ChangeEvent, type ClipboardEvent, type FormEvent, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { safeImageUrl, safeNavigationUrl } from "@/lib/publicContent";
 import type { EntityProfileData } from "@/types/entityProfile";
 
 export function RatingStars({ rating }: { rating: number }) {
@@ -36,6 +37,10 @@ function DetailValue({ value, supportMissing = false }: { value: unknown; suppor
         {supportMissing ? "Missing" : "Not provided"}
       </span>
     );
+  }
+
+  if (Array.isArray(value)) {
+    return <span className="text-sm font-medium text-slate-900">{value.length ? value.join(", ") : "Not provided"}</span>;
   }
 
   return <span className="text-sm font-medium text-slate-900">{String(value)}</span>;
@@ -126,14 +131,31 @@ export function EntityDetailsCard({ data }: { data: EntityProfileData }) {
     ["Entity legal name", d.legalName],
     ["Display name", data.displayName],
     ["Entity type", data.entityType],
+    ["Business type", d.businessType],
     ["Website", d.website],
+    ["Play Store", d.playStoreUrl],
+    ["App Store", d.appStoreUrl],
     ["Support email", d.supportEmail, true],
     ["Support phone", d.supportPhone, true],
     ["Registered address", d.registeredAddress],
     ["Registration number", d.registrationNumber],
     ["RBI registration claim", d.rbiRegistrationClaim],
+    ["RBI independently verified on", d.rbiRegistrationVerifiedAt],
+    ["RBI source URL", d.rbiRegistrationSourceUrl],
+    ["Associated NBFC / regulated entity", d.associatedRegulatedEntity],
+    ["Interest-rate range", d.interestRateRange],
+    ["Processing fees", d.processingFees],
+    ["Late-payment charges", d.latePaymentCharges],
+    ["Loan tenure", d.loanTenure],
+    ["Privacy disclosure", d.privacyDisclosure],
+    ["Contact-access disclosure", d.contactAccessDisclosure],
+    ["Recovery-practice information", d.recoveryPracticeInfo],
+    ["Known complaint categories", d.knownComplaintCategories],
+    ["Public warning labels", d.publicWarningLabels],
     ["Last verified", d.lastVerifiedAt],
+    ["Last reviewed date", d.lastReviewedAt],
     ["Verification confidence", d.verificationConfidence],
+    ["Data source", d.dataSource],
   ] as const;
 
   return (
@@ -148,6 +170,38 @@ export function EntityDetailsCard({ data }: { data: EntityProfileData }) {
         ))}
       </div>
       <p className="mt-1.5 text-xs text-slate-400">Source URLs: {d.sourceUrls.join(", ")}</p>
+    </section>
+  );
+}
+
+export function PublicDisclosureFactsCard({ data }: { data: EntityProfileData }) {
+  const d = data.details;
+  const cards = [
+    ["Pricing", [["Interest-rate range", d.interestRateRange], ["Processing fees", d.processingFees], ["Late-payment charges", d.latePaymentCharges], ["Loan tenure", d.loanTenure]]],
+    ["Privacy & recovery", [["Privacy disclosure", d.privacyDisclosure], ["Contact-access disclosure", d.contactAccessDisclosure], ["Recovery-practice information", d.recoveryPracticeInfo]]],
+    ["Regulatory verification", [["Associated regulated entity", d.associatedRegulatedEntity], ["RBI registration number", d.registrationNumber], ["RBI verified on", d.rbiRegistrationVerifiedAt], ["RBI source", d.rbiRegistrationSourceUrl]]],
+    ["Public signals", [["Known complaint categories", d.knownComplaintCategories], ["Public warning labels", d.publicWarningLabels], ["Data source", d.dataSource], ["Last reviewed", d.lastReviewedAt || d.lastVerifiedAt]]],
+  ] as const;
+
+  return (
+    <section className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-sm">
+      <h2 className="text-base font-semibold text-slate-800">Public profile facts</h2>
+      <p className="mt-1 text-xs text-slate-500">Structured lender disclosures, regulatory references, complaint signals, and review metadata.</p>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        {cards.map(([title, rows]) => (
+          <div key={title} className="rounded-xl bg-slate-50 p-3">
+            <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+            <dl className="mt-2 space-y-2">
+              {rows.map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 border-b border-white pb-2 last:border-b-0 last:pb-0">
+                  <dt className="text-xs text-slate-500">{label}</dt>
+                  <dd className="max-w-[58%] text-right"><DetailValue value={value} /></dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -242,15 +296,9 @@ function makeEnrichmentForm(data: EntityProfileData): EnrichmentForm {
   };
 }
 
-function isValidOptionalUrl(value: string) {
+function isValidOptionalUrl(value: string, image = false) {
   if (!value) return true;
-  if (/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/.test(value)) return true;
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
+  return Boolean(image ? safeImageUrl(value) : safeNavigationUrl(value));
 }
 
 function isValidOptionalEmail(value: string) {
@@ -286,12 +334,12 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
   const updateLogoFile = async (file?: File) => {
     setError("");
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Logo file must be an image.");
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      setError("Logo must be a PNG, JPEG, WebP, or GIF image.");
       return;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      setError("Logo image must be smaller than 4 MB.");
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Logo image must be smaller than 2 MB.");
       return;
     }
     update("logoUrl", await readImageAsDataUrl(file));
@@ -314,7 +362,7 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
     setError("");
     setSuccess("");
 
-    if (!isValidOptionalUrl(form.logoUrl) || !isValidOptionalUrl(form.officialWebsite)) {
+    if (!isValidOptionalUrl(form.logoUrl, true) || !isValidOptionalUrl(form.officialWebsite)) {
       setError("Enter valid URLs for logo and website.");
       return;
     }
@@ -365,10 +413,10 @@ export function EntityEnrichmentModal({ data, onClose, onSaved }: { data: Entity
                   />
                   <label className="shrink-0 cursor-pointer border-l border-slate-300 bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
                     Choose image
-                    <input type="file" accept="image/*" onChange={(event) => void updateLogoChoice(event)} className="sr-only" />
+                    <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => void updateLogoChoice(event)} className="sr-only" />
                   </label>
                 </div>
-                {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
+                {safeImageUrl(form.logoUrl) ? <img src={safeImageUrl(form.logoUrl)!} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
               </div>
               <TextInput label="Official website" value={form.officialWebsite} onChange={(value) => update("officialWebsite", value)} placeholder="https://company.com" />
             </div>
@@ -487,6 +535,7 @@ export default function CompanyNbfcProfilePage({ data, onEnriched }: { data: Ent
         <EntityHero data={data} onOpenEnrich={() => setShowEnrichmentModal(true)} />
         <EntityDisclaimerBox />
         <VerifiedLenderProfileCard data={data} />
+        <PublicDisclosureFactsCard data={data} />
         <NbfcOfficialDetailsCard data={data} />
         <EntityDetailsCard data={data} />
         <LinkedLoanAppsSection apps={data.linkedApps} />

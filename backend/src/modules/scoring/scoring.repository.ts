@@ -1,4 +1,4 @@
-import { Prisma, ReviewStatus, RiskLevel, VerificationStatus } from "@prisma/client";
+import { Prisma, RegulatoryActionStatus, ReviewStatus, RiskLevel, VerificationStatus } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
 import type { UpdateScoringConfigInput } from "./scoring.validators.js";
 
@@ -31,6 +31,10 @@ export const scoringRepository = {
           include: { companyResponses: true },
         },
         complaintSummaries: true,
+        regulatoryActions: {
+          where: { status: { in: [RegulatoryActionStatus.ACTIVE, RegulatoryActionStatus.UNDER_REVIEW] } },
+          orderBy: [{ severity: "desc" }, { sourcePublishedAt: "desc" }],
+        },
       },
     });
   },

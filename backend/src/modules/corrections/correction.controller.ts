@@ -5,7 +5,7 @@ import { correctionService } from "./correction.service.js";
 
 export const correctionController = {
   async create(req: Request, res: Response) {
-    const correction = await correctionService.create(req.body, req.user?.id);
+    const correction = await correctionService.create(req.body, req.user!.id);
     res.status(201).json(toCorrectionSubmissionDto(correction));
   },
 
@@ -16,6 +16,11 @@ export const correctionController = {
 
   async getById(req: Request, res: Response) {
     const correction = await correctionService.getById(req.params.id);
+    res.json(toCorrectionDto(correction));
+  },
+
+  async getMine(req: Request, res: Response) {
+    const correction = await correctionService.getMine(req.params.id, req.user?.id);
     res.json(toCorrectionDto(correction));
   },
 
@@ -49,4 +54,3 @@ export const correctionController = {
     res.json(toCorrectionDto(correction));
   },
 };
-

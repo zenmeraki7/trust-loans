@@ -1,4 +1,4 @@
-import { RiskLevel, VerificationStatus } from "@prisma/client";
+import { RegulatoryActionSeverity, RiskLevel, VerificationStatus } from "@prisma/client";
 import { AppError } from "../../utils/AppError.js";
 import { auditLog } from "../../utils/auditLogger.js";
 import { scoringRepository } from "./scoring.repository.js";
@@ -14,6 +14,17 @@ const riskFromScore = (score: number, severePatternPercent: number): RiskLevel =
   if (score >= 25) return RiskLevel.HIGH;
   return RiskLevel.UNDER_REVIEW;
 };
+
+const hasText = (value?: string | null) => Boolean(value?.trim());
+
+const hasAnyText = (...values: Array<string | null | undefined>) => values.some(hasText);
+
+const totalPatternPercent = (summaries: Array<{ tag: string; percentage: number }>, tags: string[]) =>
+  summaries
+    .filter((summary) => tags.some((tag) => summary.tag.toLowerCase().includes(tag.toLowerCase())))
+    .reduce((sum, summary) => sum + summary.percentage, 0);
+
+const qualityFromComplaintPercent = (percent: number) => clamp(100 - percent * 2);
 
 export const scoringService = {
   getConfig() {
@@ -47,86 +58,128 @@ export const scoringService = {
     const averageRating = reviewCount ? app.reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount : 0;
     const approvedResponses = app.reviews.flatMap((review) => review.companyResponses).filter((response) => response.status === "APPROVED").length;
     const severeTags = ["Harassment", "Threat Calls", "Photo Morphing", "Data Misuse", "Fake Legal Notice"];
-    const privacyTags = ["Data Misuse", "Contact List Abuse", "Photo Morphing"];
-    const hiddenChargeTags = ["Hidden Charges", "Payment Not Updated", "Loan Not Closed"];
-    const totalPatternPercent = (tags: string[]) =>
-      app.complaintSummaries
-        .filter((summary) => tags.some((tag) => summary.tag.toLowerCase().includes(tag.toLowerCase())))
-        .reduce((sum, summary) => sum + summary.percentage, 0);
-
-    const severePatternPercent = totalPatternPercent(severeTags);
-    const privacyPatternPercent = totalPatternPercent(privacyTags);
-    const hiddenChargePatternPercent = totalPatternPercent(hiddenChargeTags);
+    const recoveryTags = ["Harassment", "Threat Calls", "Recovery", "Fake Legal Notice", "Abusive"];
+    const privacyTags = ["Data Misuse", "Contact List Abuse", "Photo Morphing", "Privacy"];
+    const contactAccessTags = ["Contact List Abuse", "Contact", "Relative", "Office"];
+    const hiddenChargeTags = ["Hidden Charges", "Processing Fee", "Payment Not Updated", "Loan Not Closed", "Fee"];
+    const harassmentTags = ["Harassment", "Threat Calls", "Abusive", "Repeated Calls"];
+    const severePatternPercent = totalPatternPercent(app.complaintSummaries, severeTags);
+    const recoveryPatternPercent = totalPatternPercent(app.complaintSummaries, recoveryTags);
+    const privacyPatternPercent = totalPatternPercent(app.complaintSummaries, privacyTags);
+    const contactAccessPatternPercent = totalPatternPercent(app.complaintSummaries, contactAccessTags);
+    const hiddenChargePatternPercent = totalPatternPercent(app.complaintSummaries, hiddenChargeTags);
+    const harassmentPatternPercent = totalPatternPercent(app.complaintSummaries, harassmentTags);
     const verifiedSignal =
       verification.verificationStatus === VerificationStatus.VERIFIED
         ? 100
         : verification.verificationStatus === VerificationStatus.PARTIALLY_VERIFIED
           ? 65
           : 35;
+    const identityFieldCount = [
+      app.legalEntityName,
+      app.companyName,
+      app.associatedRegulatedEntity ?? app.claimedNbfcPartner,
+      app.rbiRegistrationNumber,
+      app.rbiRegistrationSourceUrl,
+    ].filter(hasText).length;
+    const disclosureFieldCount = [app.interestRateRange, app.processingFees, app.latePaymentCharges, app.loanTenure].filter(hasText).length;
+    const privacyFieldCount = [app.privacyDisclosure, app.contactAccessDisclosure].filter(hasText).length;
+    const hasStore = hasAnyText(app.playStoreUrl, app.appStoreUrl);
+    const hasDomain = hasText(app.websiteUrl);
+    const domainConsistencyScore = hasStore && hasDomain ? 100 : hasStore || hasDomain ? 65 : 25;
+    const regulatoryActionLabels = app.publicWarningLabels.filter((label) => /regulatory|rbi|order|enforcement|ban|blacklist|action/i.test(label));
+    const structuredRegulatoryActions = app.regulatoryActions;
+    const mostSevereRegulatoryAction = structuredRegulatoryActions.find((action) =>
+      action.severity === RegulatoryActionSeverity.CRITICAL || action.severity === RegulatoryActionSeverity.HIGH,
+    ) ?? structuredRegulatoryActions[0];
+    const confirmedRegulatoryActionScore = mostSevereRegulatoryAction
+      ? mostSevereRegulatoryAction.severity === RegulatoryActionSeverity.CRITICAL
+        ? 5
+        : mostSevereRegulatoryAction.severity === RegulatoryActionSeverity.HIGH
+          ? 20
+          : mostSevereRegulatoryAction.severity === RegulatoryActionSeverity.MEDIUM
+            ? 45
+            : 65
+      : regulatoryActionLabels.length > 0
+        ? 20
+        : app.rbiRegistrationVerifiedAt || app.rbiRegistrationNumber
+          ? 90
+          : 70;
 
     const components: ScoreComponent[] = [
       {
-        key: "averageRating",
-        label: "Average review rating",
-        score: clamp((averageRating / 5) * 100),
+        key: "regulatoryIdentityClarity",
+        label: "Regulatory identity clarity",
+        score: clamp((identityFieldCount / 5) * 70 + verifiedSignal * 0.3),
+        weight: config.publicDetailVerificationWeight,
+        explanation: "Checks legal entity, claimed or associated regulated entity, RBI registration fields, source URL, and verification status.",
+      },
+      {
+        key: "interestFeeTransparency",
+        label: "Interest and fee transparency",
+        score: clamp((disclosureFieldCount / 4) * 100 - hiddenChargePatternPercent),
         weight: config.averageRatingWeight,
-        explanation: "Based on published and partially published user reviews.",
+        explanation: "Rewards listed interest range, processing fees, late-payment charges, and loan tenure; hidden-charge complaints reduce this factor.",
       },
       {
-        key: "reviewVolume",
-        label: "Review volume",
-        score: clamp(Math.min(reviewCount, 500) / 5),
-        weight: config.reviewVolumeWeight,
-        explanation: "Higher review volume improves confidence but does not prove safety.",
-      },
-      {
-        key: "recentComplaintTrend",
-        label: "Recent complaint trend",
-        score: clamp(100 - severePatternPercent),
-        weight: config.recentComplaintTrendWeight,
-        explanation: "Uses aggregated complaint pattern percentages.",
-      },
-      {
-        key: "complaintSeverity",
-        label: "Complaint severity",
-        score: clamp(100 - severePatternPercent - privacyPatternPercent / 2),
-        weight: config.complaintSeverityWeight,
-        explanation: "Higher severe user-reported pattern share reduces this component.",
-      },
-      {
-        key: "verifiedBorrowerSignals",
-        label: "Verified borrower signals",
-        score: 50,
-        weight: config.verifiedBorrowerWeight,
-        explanation: "Placeholder score until borrower verification events are implemented.",
-      },
-      {
-        key: "companyResponseActivity",
-        label: "Company response activity",
-        score: clamp(reviewCount ? (approvedResponses / reviewCount) * 100 : 0),
-        weight: config.companyResponseWeight,
-        explanation: "Only approved company responses are counted.",
-      },
-      {
-        key: "grievanceAvailability",
-        label: "Grievance detail availability",
+        key: "grievanceContactAvailability",
+        label: "Availability of grievance contacts",
         score: verification.grievanceAvailable ? 100 : 20,
         weight: config.grievanceAvailabilityWeight,
-        explanation: "Checks whether public support or grievance contact details are available.",
+        explanation: "Checks whether support or grievance email/phone details are available publicly.",
       },
       {
-        key: "publicDetailVerification",
-        label: "Public detail verification",
-        score: verifiedSignal,
-        weight: config.publicDetailVerificationWeight,
-        explanation: "Reflects platform verification status for public details.",
+        key: "privacyDisclosureClarity",
+        label: "Privacy disclosures",
+        score: clamp((privacyFieldCount / 2) * 100 - privacyPatternPercent),
+        weight: config.privacyComplaintPenalty,
+        explanation: "Rewards privacy and contact-access disclosures; privacy/data misuse complaint patterns reduce this factor.",
       },
       {
-        key: "reviewIntegrity",
-        label: "Review integrity",
-        score: 85,
+        key: "recoveryRelatedComplaints",
+        label: "Recovery-related complaints",
+        score: qualityFromComplaintPercent(recoveryPatternPercent),
+        weight: config.complaintSeverityWeight,
+        explanation: "Uses complaint summaries for recovery harassment, threats, abusive recovery, and fake legal notices.",
+      },
+      {
+        key: "contactAccessComplaints",
+        label: "Contact-access complaints",
+        score: qualityFromComplaintPercent(contactAccessPatternPercent),
+        weight: config.privacyComplaintPenalty,
+        explanation: "Uses contact-list abuse, relatives, workplace, and contact-access complaint patterns.",
+      },
+      {
+        key: "repeatedHarassmentReports",
+        label: "Repeated harassment reports",
+        score: qualityFromComplaintPercent(harassmentPatternPercent),
+        weight: config.recentComplaintTrendWeight,
+        explanation: "Uses repeated harassment, threat-call, abusive-call, and related complaint summaries.",
+      },
+      {
+        key: "appStoreDomainConsistency",
+        label: "App-store and domain consistency",
+        score: domainConsistencyScore,
         weight: config.reviewIntegrityWeight,
-        explanation: "Placeholder score until integrity signals are fully wired.",
+        explanation: "Checks whether official website/domain and app-store links are present together.",
+      },
+      {
+        key: "confirmedRegulatoryActions",
+        label: "Confirmed regulatory actions",
+        score: confirmedRegulatoryActionScore,
+        weight: config.staleVerificationPenalty,
+        explanation: mostSevereRegulatoryAction
+          ? `${mostSevereRegulatoryAction.authorityName} recorded ${mostSevereRegulatoryAction.actionType.replaceAll("_", " ").toLowerCase()} (${mostSevereRegulatoryAction.severity.toLowerCase()}): ${mostSevereRegulatoryAction.title}.`
+          : regulatoryActionLabels.length > 0
+          ? `Public warning labels indicate possible regulatory action: ${regulatoryActionLabels.join(", ")}.`
+          : "No confirmed regulatory-action warning label is recorded in this profile.",
+      },
+      {
+        key: "complaintResponsiveness",
+        label: "Responsiveness to complaints",
+        score: reviewCount ? clamp((approvedResponses / reviewCount) * 100) : 50,
+        weight: config.companyResponseWeight,
+        explanation: "Uses approved public company responses when available; neutral when no complaint-response data exists.",
       },
     ];
 

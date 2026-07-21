@@ -1,4 +1,6 @@
 import { HarassmentCaseType } from "@prisma/client";
+import { allowedStatuses, authorizeAction, authorizeResource } from "../../authorization/authorization.js";
+import type { AuthUser } from "../../middlewares/auth.js";
 import { AppError } from "../../utils/AppError.js";
 import { auditLog } from "../../utils/auditLogger.js";
 import { harassmentCaseRepository } from "./harassmentCase.repository.js";
@@ -31,66 +33,83 @@ const defaultChecklistByType: Partial<Record<HarassmentCaseType, Array<{ label: 
   ],
 };
 
+const mutableCaseStatuses = allowedStatuses("case.write") ?? [];
+
 export const harassmentCaseService = {
-  async create(userId: string, input: CreateCaseInput) {
+  async create(user: AuthUser, input: CreateCaseInput) {
+    authorizeAction(user, "case.write");
     await assertLoanAppExists(input.loanAppId);
-    const created = await harassmentCaseRepository.create(userId, input);
+    const created = await harassmentCaseRepository.create(user.id, input);
     const checklist = defaultChecklistByType[input.caseType as HarassmentCaseType] ?? [];
     for (const item of checklist) {
-      await harassmentCaseRepository.createChecklist(created.id, item);
+      await harassmentCaseRepository.createChecklistForUser(user.id, created.id, mutableCaseStatuses, item);
     }
-    await auditLog({ actorId: userId, action: "case.create", targetType: "HarassmentCase", targetId: created.id });
-    return this.get(userId, created.id);
+    await auditLog({ actorId: user.id, action: "case.create", targetType: "HarassmentCase", targetId: created.id });
+    return this.get(user, created.id);
   },
-  list(userId: string) { return harassmentCaseRepository.listByUser(userId); },
-  async get(userId: string, caseId: string) {
-    const item = await harassmentCaseRepository.findByIdForUser(userId, caseId);
+  list(user: AuthUser) { authorizeAction(user, "case.read"); return harassmentCaseRepository.listByUser(user.id); },
+  async get(user: AuthUser, caseId: string) {
+    const item = await harassmentCaseRepository.findByIdForUser(user.id, caseId);
     if (!item) throw new AppError("Case not found", 404);
+    authorizeResource(user, "case.read", { ownerId: item.userId, status: item.status });
     return item;
   },
-  async update(userId: string, caseId: string, input: UpdateCaseInput) {
-    await this.get(userId, caseId);
+  async update(user: AuthUser, caseId: string, input: UpdateCaseInput) {
+    await assertCaseWritable(user, caseId);
     await assertLoanAppExists(input.loanAppId);
-    const updated = await harassmentCaseRepository.updateById(caseId, input);
-    await auditLog({ actorId: userId, action: "case.update", targetType: "HarassmentCase", targetId: caseId });
+    const updated = await harassmentCaseRepository.updateForUser(user.id, caseId, mutableCaseStatuses, input);
+    if (!updated) throw new AppError("Case not found or no longer editable", 404);
+    await auditLog({ actorId: user.id, action: "case.update", targetType: "HarassmentCase", targetId: caseId });
     return updated;
   },
-  async archive(userId: string, caseId: string) {
-    await this.get(userId, caseId);
-    const updated = await harassmentCaseRepository.archive(caseId);
-    await auditLog({ actorId: userId, action: "case.archive", targetType: "HarassmentCase", targetId: caseId });
+  async archive(user: AuthUser, caseId: string) {
+    await assertCaseWritable(user, caseId);
+    const updated = await harassmentCaseRepository.archiveForUser(user.id, caseId, mutableCaseStatuses);
+    if (!updated) throw new AppError("Case not found or no longer editable", 404);
+    await auditLog({ actorId: user.id, action: "case.archive", targetType: "HarassmentCase", targetId: caseId });
     return updated;
   },
-  async createTimeline(userId: string, caseId: string, input: { type: string; title: string; description?: string; happenedAt?: Date; evidenceFileIds: string[] }) {
-    await this.get(userId, caseId);
-    const row = await harassmentCaseRepository.createTimeline(caseId, input);
-    await auditLog({ actorId: userId, action: "case.timeline.create", targetType: "CaseTimelineItem", targetId: row.id });
+  async createTimeline(user: AuthUser, caseId: string, input: { type: string; title: string; description?: string; happenedAt?: Date; evidenceFileIds: string[] }) {
+    await assertCaseWritable(user, caseId);
+    const row = await harassmentCaseRepository.createTimelineForUser(user.id, caseId, mutableCaseStatuses, input);
+    if (!row) throw new AppError("Case not found", 404);
+    await auditLog({ actorId: user.id, action: "case.timeline.create", targetType: "CaseTimelineItem", targetId: row.id });
     return row;
   },
-  async updateTimeline(userId: string, caseId: string, itemId: string, input: Record<string, unknown>) {
-    await this.get(userId, caseId);
-    const row = await harassmentCaseRepository.updateTimeline(itemId, input);
-    await auditLog({ actorId: userId, action: "case.timeline.update", targetType: "CaseTimelineItem", targetId: itemId });
+  async updateTimeline(user: AuthUser, caseId: string, itemId: string, input: Record<string, unknown>) {
+    await assertCaseWritable(user, caseId);
+    const row = await harassmentCaseRepository.updateTimelineForUser(user.id, caseId, itemId, mutableCaseStatuses, input);
+    if (!row) throw new AppError("Timeline item not found", 404);
+    await auditLog({ actorId: user.id, action: "case.timeline.update", targetType: "CaseTimelineItem", targetId: itemId });
     return row;
   },
-  async deleteTimeline(userId: string, caseId: string, itemId: string) { await this.get(userId, caseId); await harassmentCaseRepository.deleteTimeline(itemId); await auditLog({ actorId: userId, action: "case.timeline.delete", targetType: "CaseTimelineItem", targetId: itemId }); },
-  async createChecklist(userId: string, caseId: string, input: { label: string; description?: string }) { await this.get(userId, caseId); return harassmentCaseRepository.createChecklist(caseId, input); },
-  async updateChecklist(userId: string, caseId: string, itemId: string, input: { label?: string; description?: string; completed?: boolean }) { await this.get(userId, caseId); return harassmentCaseRepository.updateChecklist(itemId, { ...input, completedAt: input.completed ? new Date() : null }); },
-  async deleteChecklist(userId: string, caseId: string, itemId: string) { await this.get(userId, caseId); await harassmentCaseRepository.deleteChecklist(itemId); },
-  async createExternalComplaint(userId: string, caseId: string, input: Record<string, unknown>) { await this.get(userId, caseId); return harassmentCaseRepository.createExternalComplaint(caseId, input); },
-  async updateExternalComplaint(userId: string, caseId: string, complaintId: string, input: Record<string, unknown>) { await this.get(userId, caseId); return harassmentCaseRepository.updateExternalComplaint(complaintId, input); },
-  async deleteExternalComplaint(userId: string, caseId: string, complaintId: string) { await this.get(userId, caseId); await harassmentCaseRepository.deleteExternalComplaint(complaintId); },
-  async linkReview(userId: string, caseId: string, reviewId: string) { await this.get(userId, caseId); return harassmentCaseRepository.updateLinks(caseId, { linkedReviewId: reviewId }); },
-  async linkEvidence(userId: string, caseId: string, evidenceId: string) {
-    const existing = await this.get(userId, caseId);
-    return harassmentCaseRepository.updateLinks(caseId, { linkedEvidenceFileIds: [...existing.linkedEvidenceFileIds, evidenceId] });
+  async deleteTimeline(user: AuthUser, caseId: string, itemId: string) { await assertCaseWritable(user, caseId); if (!(await harassmentCaseRepository.deleteTimelineForUser(user.id, caseId, itemId, mutableCaseStatuses))) throw new AppError("Timeline item not found", 404); await auditLog({ actorId: user.id, action: "case.timeline.delete", targetType: "CaseTimelineItem", targetId: itemId }); },
+  async createChecklist(user: AuthUser, caseId: string, input: { label: string; description?: string }) { await assertCaseWritable(user, caseId); const row = await harassmentCaseRepository.createChecklistForUser(user.id, caseId, mutableCaseStatuses, input); if (!row) throw new AppError("Case not found", 404); return row; },
+  async updateChecklist(user: AuthUser, caseId: string, itemId: string, input: { label?: string; description?: string; completed?: boolean }) { await assertCaseWritable(user, caseId); const row = await harassmentCaseRepository.updateChecklistForUser(user.id, caseId, itemId, mutableCaseStatuses, { ...input, completedAt: input.completed ? new Date() : null }); if (!row) throw new AppError("Checklist item not found", 404); return row; },
+  async deleteChecklist(user: AuthUser, caseId: string, itemId: string) { await assertCaseWritable(user, caseId); if (!(await harassmentCaseRepository.deleteChecklistForUser(user.id, caseId, itemId, mutableCaseStatuses))) throw new AppError("Checklist item not found", 404); },
+  async createExternalComplaint(user: AuthUser, caseId: string, input: Record<string, unknown>) { await assertCaseWritable(user, caseId); const row = await harassmentCaseRepository.createExternalComplaintForUser(user.id, caseId, mutableCaseStatuses, input); if (!row) throw new AppError("Case not found", 404); return row; },
+  async updateExternalComplaint(user: AuthUser, caseId: string, complaintId: string, input: Record<string, unknown>) { await assertCaseWritable(user, caseId); const row = await harassmentCaseRepository.updateExternalComplaintForUser(user.id, caseId, complaintId, mutableCaseStatuses, input); if (!row) throw new AppError("External complaint not found", 404); return row; },
+  async deleteExternalComplaint(user: AuthUser, caseId: string, complaintId: string) { await assertCaseWritable(user, caseId); if (!(await harassmentCaseRepository.deleteExternalComplaintForUser(user.id, caseId, complaintId, mutableCaseStatuses))) throw new AppError("External complaint not found", 404); },
+  async linkReview(user: AuthUser, caseId: string, reviewId: string) { await assertCaseWritable(user, caseId); if (!(await harassmentCaseRepository.ownedReviewExists(user.id, reviewId))) throw new AppError("Review not found", 404); return harassmentCaseRepository.updateLinksForUser(user.id, caseId, mutableCaseStatuses, { linkedReviewId: reviewId }); },
+  async linkEvidence(user: AuthUser, caseId: string, evidenceId: string) {
+    if (!(await harassmentCaseRepository.ownedEvidenceExists(user.id, evidenceId))) throw new AppError("Evidence record not found", 404);
+    const existing = await assertCaseWritable(user, caseId);
+    return harassmentCaseRepository.updateLinksForUser(user.id, caseId, mutableCaseStatuses, { linkedEvidenceFileIds: [...new Set([...existing.linkedEvidenceFileIds, evidenceId])] });
   },
-  async linkDecisionSession(userId: string, caseId: string, sessionId: string) { await this.get(userId, caseId); return harassmentCaseRepository.updateLinks(caseId, { decisionTreeSessionId: sessionId }); },
-  async linkComplaintDraft(userId: string, caseId: string, draftId: string) {
-    const existing = await this.get(userId, caseId);
-    return harassmentCaseRepository.updateLinks(caseId, { linkedComplaintDraftIds: [...existing.linkedComplaintDraftIds, draftId] });
+  async linkDecisionSession(user: AuthUser, caseId: string, sessionId: string) { await assertCaseWritable(user, caseId); return harassmentCaseRepository.updateLinksForUser(user.id, caseId, mutableCaseStatuses, { decisionTreeSessionId: sessionId }); },
+  async linkComplaintDraft(user: AuthUser, caseId: string, draftId: string) {
+    if (!(await harassmentCaseRepository.ownedComplaintDraftExists(user.id, draftId))) throw new AppError("Complaint draft not found", 404);
+    const existing = await assertCaseWritable(user, caseId);
+    return harassmentCaseRepository.updateLinksForUser(user.id, caseId, mutableCaseStatuses, { linkedComplaintDraftIds: [...new Set([...existing.linkedComplaintDraftIds, draftId])] });
   },
 };
+
+async function assertCaseWritable(user: AuthUser, caseId: string) {
+  const item = await harassmentCaseRepository.findByIdForUser(user.id, caseId);
+  if (!item) throw new AppError("Case not found", 404);
+  authorizeResource(user, "case.write", { ownerId: item.userId, status: item.status });
+  return item;
+}
 
 async function assertLoanAppExists(loanAppId?: string | null) {
   if (!loanAppId) return;

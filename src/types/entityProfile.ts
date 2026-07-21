@@ -15,11 +15,28 @@ export type EntityProfileData = {
   details: {
     legalName: string;
     website: string;
+    businessType: string;
+    playStoreUrl: string;
+    appStoreUrl: string;
     supportEmail: string;
     supportPhone: string;
     registeredAddress: string;
     registrationNumber: string;
     rbiRegistrationClaim: string;
+    rbiRegistrationVerifiedAt: string;
+    rbiRegistrationSourceUrl: string;
+    associatedRegulatedEntity: string;
+    interestRateRange: string;
+    processingFees: string;
+    latePaymentCharges: string;
+    loanTenure: string;
+    privacyDisclosure: string;
+    contactAccessDisclosure: string;
+    recoveryPracticeInfo: string;
+    knownComplaintCategories: string[];
+    publicWarningLabels: string[];
+    dataSource: string;
+    lastReviewedAt: string;
     sourceUrls: string[];
     lastVerifiedAt: string;
     verificationConfidence: "low" | "medium" | "high";

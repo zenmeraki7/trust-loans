@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireRole } from "../../middlewares/roles.js";
+import { requireAction } from "../../authorization/authorization.js";
 import { validate } from "../../middlewares/validate.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { scoringController } from "./scoring.controller.js";
@@ -11,21 +11,20 @@ scoringRoutes.get("/apps/:id/score-breakdown", validate(scoreBreakdownParamSchem
 
 scoringRoutes.get(
   "/admin/scoring/config",
-  requireRole("ADMIN", "SUPER_ADMIN", "SENIOR_MODERATOR", "ANALYST"),
+  requireAction("admin.scoring.read"),
   asyncHandler(scoringController.getConfig),
 );
 
 scoringRoutes.patch(
   "/admin/scoring/config",
-  requireRole("ADMIN", "SUPER_ADMIN"),
+  requireAction("admin.scoring.write"),
   validate(updateScoringConfigSchema),
   asyncHandler(scoringController.updateConfig),
 );
 
 scoringRoutes.post(
   "/admin/scoring/recalculate",
-  requireRole("ADMIN", "SUPER_ADMIN", "SENIOR_MODERATOR"),
+  requireAction("admin.scoring.recalculate"),
   validate(recalculateScoringSchema),
   asyncHandler(scoringController.recalculate),
 );
-

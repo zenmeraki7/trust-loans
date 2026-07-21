@@ -1,15 +1,16 @@
 import type { RiskLevel } from "@prisma/client";
 
 export type ScoreComponentKey =
-  | "averageRating"
-  | "reviewVolume"
-  | "recentComplaintTrend"
-  | "complaintSeverity"
-  | "verifiedBorrowerSignals"
-  | "companyResponseActivity"
-  | "grievanceAvailability"
-  | "publicDetailVerification"
-  | "reviewIntegrity";
+  | "regulatoryIdentityClarity"
+  | "interestFeeTransparency"
+  | "grievanceContactAvailability"
+  | "privacyDisclosureClarity"
+  | "recoveryRelatedComplaints"
+  | "contactAccessComplaints"
+  | "repeatedHarassmentReports"
+  | "appStoreDomainConsistency"
+  | "confirmedRegulatoryActions"
+  | "complaintResponsiveness";
 
 export type ScoreComponent = {
   key: ScoreComponentKey;
@@ -36,4 +37,3 @@ export type ScoringJobName =
   | "score.recalculate.all"
   | "complaint.summary.rebuild"
   | "risk.signal.detect";
-

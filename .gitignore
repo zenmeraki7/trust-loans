@@ -1,6 +1,13 @@
 # Environment configuration
 .env
 .env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.crt
+*.cer
 
 
 # Dependencies

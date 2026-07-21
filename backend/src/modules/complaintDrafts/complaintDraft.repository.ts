@@ -1,5 +1,6 @@
 import { ComplaintDraftStatus } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
+import { ownedByUser } from "../../security/ownerScope.js";
 import type { CreateComplaintDraftInput, UpdateComplaintDraftInput } from "../complaintTemplates/complaintTemplate.validators.js";
 
 export const complaintDraftRepository = {
@@ -12,7 +13,7 @@ export const complaintDraftRepository = {
         title: input.title,
         templateKey: input.templateKey,
         outputType: input.outputType,
-        status: input.status ?? ComplaintDraftStatus.DRAFT,
+        status: ComplaintDraftStatus.DRAFT,
         formData: input.formData,
         generatedSubject: input.generatedSubject,
         generatedBody: input.generatedBody,
@@ -29,20 +30,20 @@ export const complaintDraftRepository = {
 
   findByIdForUser(userId: string, id: string) {
     return prisma.complaintDraft.findFirst({
-      where: { id, userId, status: { not: ComplaintDraftStatus.DELETED } },
+      where: ownedByUser(id, userId, { status: { not: ComplaintDraftStatus.DELETED } }),
     });
   },
 
   updateForUser(userId: string, id: string, input: UpdateComplaintDraftInput) {
     return prisma.complaintDraft.updateMany({
-      where: { id, userId, status: { not: ComplaintDraftStatus.DELETED } },
+      where: ownedByUser(id, userId, { status: { not: ComplaintDraftStatus.DELETED } }),
       data: input,
     });
   },
 
   markDeleted(userId: string, id: string) {
     return prisma.complaintDraft.updateMany({
-      where: { id, userId, status: { not: ComplaintDraftStatus.DELETED } },
+      where: ownedByUser(id, userId, { status: { not: ComplaintDraftStatus.DELETED } }),
       data: { status: ComplaintDraftStatus.DELETED },
     });
   },

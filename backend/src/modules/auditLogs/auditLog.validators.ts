@@ -11,6 +11,5 @@ export const listAuditLogsSchema = z.object({
 });
 
 export const auditLogIdSchema = z.object({
-  params: z.object({ id: z.string().min(1) }),
+  params: z.object({ id: z.string().min(1) }).strict(),
 });
-

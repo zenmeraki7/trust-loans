@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { emitSecurityAlert } from "../security/securityMonitoring.js";
 
 type AuditLogInput = {
   actorId?: string;
@@ -22,5 +23,13 @@ export const auditLog = async (input: AuditLogInput) => {
       reason: input.reason,
     },
   });
+  if (/role|membership\.(grant|revoke|suspend)/i.test(input.action)) {
+    await emitSecurityAlert({
+      type: "ROLE_CHANGE",
+      severity: "HIGH",
+      actorId: input.actorId,
+      reasonCode: input.action.toUpperCase().replace(/[^A-Z0-9_]/g, "_"),
+      attributes: { targetType: input.targetType, targetId: input.targetId },
+    });
+  }
 };
-

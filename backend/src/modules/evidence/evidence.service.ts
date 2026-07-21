@@ -18,20 +18,23 @@ export const evidenceService = {
   },
 
   async completeUpload(userId: string, input: CompleteUploadInput) {
+    if (input.reviewId && !(await evidenceRepository.ownedReviewExists(input.reviewId, userId))) {
+      throw new AppError("Review not found", 404);
+    }
     const maskedFileName = maskFileName(input.fileName);
     const originalFileNameHash = storageAdapter.hashOriginalFileName(input.fileName);
-    const status = input.sensitiveFlags.some((flag) => severeFlags.has(flag)) ? EvidenceStatus.SENSITIVE_DATA_DETECTED : (input.status ?? EvidenceStatus.SCAN_PENDING);
+    const status = input.sensitiveFlags.some((flag) => severeFlags.has(flag)) ? EvidenceStatus.SENSITIVE_DATA_DETECTED : EvidenceStatus.SCAN_PENDING;
 
     const created = await evidenceRepository.create({
       ...input,
-      status,
+      serverStatus: status,
       userId,
       maskedFileName,
       originalFileNameHash,
     });
 
     if (input.reviewId) {
-      await evidenceRepository.markReviewEvidenceSubmitted(input.reviewId);
+      await evidenceRepository.markReviewEvidenceSubmittedForUser(input.reviewId, userId);
     }
 
     return created;
@@ -46,7 +49,9 @@ export const evidenceService = {
   async deleteForUser(id: string, userId: string) {
     const evidence = await evidenceRepository.findByIdForUser(id, userId);
     if (!evidence) throw new AppError("Evidence not found", 404);
-    return evidenceRepository.markDeleted(id);
+    const deleted = await evidenceRepository.markDeletedForUser(id, userId);
+    if (!deleted) throw new AppError("Evidence not found", 404);
+    return deleted;
   },
 
   listForAdmin(query: { status?: EvidenceStatus; reviewId?: string }) {
@@ -54,7 +59,7 @@ export const evidenceService = {
   },
 
   async getForAdmin(id: string) {
-    const evidence = await evidenceRepository.findById(id);
+    const evidence = await evidenceRepository.findByIdForAdminReview(id);
     if (!evidence) throw new AppError("Evidence not found", 404);
     return evidence;
   },
@@ -67,7 +72,7 @@ export const evidenceService = {
 
   async adminDecision(id: string, actorId: string, action: string, status: EvidenceStatus, reason: string) {
     const before = await this.getForAdmin(id);
-    const updated = await evidenceRepository.updateStatus(id, status);
+    const updated = await evidenceRepository.updateStatusForAdminReview(id, status);
     await auditLog({ actorId, action, targetType: "EvidenceFile", targetId: id, beforeJson: { status: before.status }, afterJson: { status: updated.status }, reason });
     return updated;
   },

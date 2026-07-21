@@ -15,6 +15,7 @@ import {
   useGenerateComplaintTemplate,
 } from "@/hooks/useComplaintTemplates";
 import type { ComplaintOutputType } from "@/types/complaintTemplates";
+import PlainText from "@/components/security/PlainText";
 
 const defaultOutputType: ComplaintOutputType = "GRIEVANCE_EMAIL";
 
@@ -190,10 +191,8 @@ export default function ComplaintTemplateBuilder({
 
       {generated && (
         <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="font-semibold">{generated.generatedSubject}</p>
-          <pre className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
-            {generated.generatedBody}
-          </pre>
+          <PlainText value={generated.generatedSubject} className="font-semibold" />
+          <PlainText as="pre" value={generated.generatedBody} className="mt-2 text-sm text-slate-700" />
         </section>
       )}
     </main>

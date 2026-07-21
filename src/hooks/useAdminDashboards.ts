@@ -8,9 +8,6 @@ import type { AdminLoanAppDatabase, ClaimStatus, ProfileStatus, VerificationStat
 import type { ModerationDashboardData, ModerationStatus } from "@/types/adminModeration";
 import type { RiskLevel } from "@/types/loanAppProfile";
 
-const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "demo-user";
-const adminAuth = { userId: DEV_USER_ID, userRole: "ADMIN" } as const;
-
 type AdminReviewDto = {
   id: string;
   loanAppId?: string | null;
@@ -385,7 +382,7 @@ export function useAdminLoanAppDatabase() {
   return useQuery({
     queryKey: ["adminLoanAppDatabase"],
     queryFn: async () => {
-      const response = await apiClient<PaginatedResponse<ApiLoanApp> & { count?: number }>("/api/apps?limit=100", adminAuth);
+      const response = await apiClient<PaginatedResponse<ApiLoanApp> & { count?: number }>("/api/apps?limit=100");
       return buildAdminApps(response.items.map((item) => apiLoanAppSchema.parse(item)));
     },
   });
@@ -396,7 +393,6 @@ export function useCreateAdminLoanApp() {
   return useMutation({
     mutationFn: (input: CreateAdminLoanAppInput) =>
       apiClient<ApiLoanApp>("/api/apps", {
-        ...adminAuth,
         method: "POST",
         body: {
           status: "PUBLISHED",
@@ -417,7 +413,7 @@ export function useAdminModerationDashboard() {
   return useQuery({
     queryKey: ["adminModerationDashboard"],
     queryFn: async () => {
-      const response = await apiClient<PaginatedResponse<AdminReviewDto> & { count?: number }>("/api/admin/moderation/reviews?limit=100", adminAuth);
+      const response = await apiClient<PaginatedResponse<AdminReviewDto> & { count?: number }>("/api/admin/moderation/reviews?limit=100");
       return buildModerationDashboard(response.items ?? []);
     },
   });
@@ -427,7 +423,7 @@ export function useAdminCorrectionDisputeQueue() {
   return useQuery({
     queryKey: ["adminCorrectionDisputeQueue"],
     queryFn: async () => {
-      const response = await apiClient<PaginatedResponse<CorrectionDto> & { count?: number }>("/api/admin/corrections?limit=100", adminAuth);
+      const response = await apiClient<PaginatedResponse<CorrectionDto> & { count?: number }>("/api/admin/corrections?limit=100");
       return buildCorrectionQueue(response.items ?? []);
     },
   });
