@@ -6,10 +6,10 @@ import { correctionRepository } from "./correction.repository.js";
 import type { CreateCorrectionInput } from "./correction.validators.js";
 
 export const correctionService = {
-  async create(input: CreateCorrectionInput, actorId?: string) {
-    const correction = await correctionRepository.create({ ...input, requesterId: input.requesterId ?? actorId });
+  async create(input: CreateCorrectionInput, actorId: string) {
+    const correction = await correctionRepository.create(input, actorId);
     await auditLog({
-      actorId: correction.requesterId ?? actorId,
+      actorId,
       action: "correction.submitted",
       targetType: "CorrectionRequest",
       targetId: correction.id,
@@ -20,7 +20,14 @@ export const correctionService = {
   },
 
   async getById(id: string) {
-    const correction = await correctionRepository.findById(id);
+    const correction = await correctionRepository.findByIdForAdmin(id);
+    if (!correction) throw new AppError("Correction request not found", 404);
+    return correction;
+  },
+
+  async getMine(id: string, requesterId?: string) {
+    if (!requesterId) throw new AppError("Authentication required", 401);
+    const correction = await correctionRepository.findByIdForRequester(id, requesterId);
     if (!correction) throw new AppError("Correction request not found", 404);
     return correction;
   },
@@ -50,7 +57,11 @@ export const correctionService = {
 
   async transition(id: string, status: CorrectionStatus, actorId?: string, reason?: string) {
     const before = await this.getById(id);
-    const updated = await correctionRepository.updateStatus(id, status);
+    const decisionStatuses = [CorrectionStatus.SUBMITTED, CorrectionStatus.UNDER_REVIEW, CorrectionStatus.MORE_INFORMATION_NEEDED, CorrectionStatus.ESCALATED];
+    const triageStatuses = [CorrectionStatus.SUBMITTED, CorrectionStatus.UNDER_REVIEW, CorrectionStatus.MORE_INFORMATION_NEEDED];
+    const isDecision = status === CorrectionStatus.ACCEPTED || status === CorrectionStatus.REJECTED;
+    const updated = await correctionRepository.updateStatusForAdmin(id, isDecision ? decisionStatuses : triageStatuses, status);
+    if (!updated) throw new AppError("Correction cannot be changed from its current status", 409);
     await auditLog({
       actorId,
       action: `correction.${status.toLowerCase()}`,
@@ -63,4 +74,3 @@ export const correctionService = {
     return updated;
   },
 };
-

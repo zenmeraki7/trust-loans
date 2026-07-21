@@ -4,7 +4,7 @@ import { reviewService } from "./review.service.js";
 
 export const reviewController = {
   async create(req: Request, res: Response) {
-    const review = await reviewService.createReview(req.body);
+    const review = await reviewService.createReview(req.user!.id, req.body);
     res.status(201).json(toSubmittedReviewDto(review));
   },
 

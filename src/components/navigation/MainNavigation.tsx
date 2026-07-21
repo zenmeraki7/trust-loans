@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/apiClient";
 
 type NavLink = {
   href: string;
@@ -15,9 +16,11 @@ type NavGroup = {
 };
 
 const primaryLinks: NavLink[] = [
+  { href: "/directory", label: "Directory" },
   { href: "/loan-apps", label: "Loan Apps" },
   { href: "/entities", label: "NBFCs" },
   { href: "/dashboard/cases", label: "Cases" },
+  { href: "/complaints/start", label: "Start Complaint" },
   { href: "/complaint-templates", label: "Templates" },
   { href: "/tools/safe-review-writer", label: "Safe Writer" },
 ];
@@ -27,26 +30,34 @@ const navGroups: NavGroup[] = [
     title: "Borrower",
     links: [
       { href: "/dashboard", label: "My Dashboard" },
+      { href: "/dashboard/complaints", label: "Complaint Tracking" },
       { href: "/dashboard/cases", label: "Case Folders" },
-      { href: "/dashboard/evidence", label: "Evidence Vault" },
+      { href: "/dashboard/evidence", label: "Evidence Checklist" },
+      { href: "/evidence-upload", label: "Prepare Evidence List" },
       { href: "/loan-apps", label: "Loan Apps" },
       { href: "/compare", label: "Compare Apps" },
       { href: "/suggest-app", label: "Suggest App" },
       { href: "/notifications", label: "Notifications" },
+      { href: "/account/security", label: "Account Security" },
     ],
   },
   {
     title: "Safety",
     links: [
       { href: "/risk-checker", label: "Risk Checker" },
+      { href: "/safety-assessment", label: "Safety Assessment Explained" },
       { href: "/app-permissions", label: "App Permissions" },
       { href: "/before-you-pay", label: "Before You Pay" },
       { href: "/emergency-help", label: "Emergency Help" },
       { href: "/legal-action-guide", label: "Legal Action Guide" },
       { href: "/debt-recovery-rules", label: "Debt Recovery Rules" },
       { href: "/complaint-tutorials", label: "Complaint Tutorials" },
+      { href: "/complaints/start", label: "Start Complaint" },
       { href: "/complaint-wizard", label: "Complaint Wizard" },
+      { href: "/complaints/review", label: "Complaint Review" },
+      { href: "/complaints/export", label: "Draft & Export" },
       { href: "/safety-library", label: "Safety Education Library" },
+      { href: "/privacy-safety", label: "Privacy & Safety Notices" },
       { href: "/review-policy", label: "Review Policy" },
     ],
   },
@@ -64,6 +75,9 @@ const navGroups: NavGroup[] = [
   {
     title: "Directories",
     links: [
+      { href: "/directory", label: "Public Directory" },
+      { href: "/search", label: "Search & Filters" },
+      { href: "/loan-apps", label: "Loan Apps" },
       { href: "/entities", label: "Companies / NBFCs" },
       { href: "/grievance-directory", label: "Grievance Directory" },
       { href: "/complaint-templates", label: "Complaint Templates" },
@@ -80,6 +94,7 @@ const navGroups: NavGroup[] = [
       { href: "/reports/monthly-risk-report", label: "Monthly Report" },
       { href: "/transparency-leaderboard", label: "Leaderboard" },
       { href: "/business/claim", label: "Business Claim" },
+      { href: "/account-recovery", label: "Account Recovery" },
     ],
   },
   {
@@ -88,7 +103,6 @@ const navGroups: NavGroup[] = [
       { href: "/admin/apps", label: "Apps Admin" },
       { href: "/admin/users", label: "Users" },
       { href: "/admin/moderation", label: "Moderation" },
-      { href: "/admin/evidence", label: "Evidence" },
       { href: "/admin/corrections", label: "Corrections Queue" },
       { href: "/admin/review-integrity", label: "Review Integrity" },
       { href: "/admin/risk-intelligence", label: "Risk Intelligence" },
@@ -135,11 +149,37 @@ export default function MainNavigation() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [directoryOpen, setDirectoryOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [logoutPending, setLogoutPending] = useState<"current" | "all" | null>(null);
+  const [logoutError, setLogoutError] = useState("");
 
   useEffect(() => {
     setMobileOpen(false);
     setDirectoryOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    let active = true;
+    apiClient("/api/auth/session")
+      .then(() => { if (active) setIsAuthenticated(true); })
+      .catch(() => { if (active) setIsAuthenticated(false); });
+    return () => { active = false; };
+  }, [pathname]);
+
+  async function logout(scope: "current" | "all" = "current") {
+    if (logoutPending) return;
+    setLogoutPending(scope);
+    setLogoutError("");
+    try {
+      await apiClient(scope === "all" ? "/api/auth/logout-all" : "/api/auth/logout", { method: "POST" });
+      setIsAuthenticated(false);
+      setMobileOpen(false);
+      window.location.assign("/");
+    } catch {
+      setLogoutError("Secure logout could not be completed. Please check your connection and try again.");
+      setLogoutPending(null);
+    }
+  }
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -171,8 +211,17 @@ export default function MainNavigation() {
           </div>
 
           <div className="hidden items-center gap-2 md:flex">
-            <Link href="/login" className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950">Log in</Link>
-            <Link href="/signup" className="rounded-full bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">Sign up</Link>
+            {isAuthenticated ? <>
+              <button type="button" onClick={() => void logout("current")} disabled={logoutPending !== null} className="whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950 disabled:cursor-wait disabled:opacity-60">
+                {logoutPending === "current" ? "Logging out..." : "Log out"}
+              </button>
+              <button type="button" aria-label="Log out all devices" onClick={() => void logout("all")} disabled={logoutPending !== null} className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60">
+                {logoutPending === "all" ? "Logging out..." : "Log out all"}
+              </button>
+            </> : <>
+              <Link href="/login" className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950">Log in</Link>
+              <Link href="/signup" className="rounded-full bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">Sign up</Link>
+            </>}
             <Link
               href="/admin/apps"
               aria-current={isActivePath(pathname, "/admin") ? "page" : undefined}
@@ -188,7 +237,7 @@ export default function MainNavigation() {
               aria-expanded={directoryOpen}
               aria-controls="desktop-route-menu"
               onClick={() => setDirectoryOpen((open) => !open)}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
               All Pages
             </button>
@@ -210,6 +259,8 @@ export default function MainNavigation() {
             </span>
           </button>
         </div>
+
+        {logoutError ? <p role="alert" className="pb-3 text-sm font-medium text-rose-700">{logoutError}</p> : null}
 
         <div
           id="desktop-route-menu"
@@ -241,9 +292,17 @@ export default function MainNavigation() {
         >
           {mobileOpen ? <div className="space-y-4 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-900/10">
             <div className="grid gap-1">
-              {[{ href: "/", label: "Home" }, ...primaryLinks, { href: "/login", label: "Log in" }, { href: "/signup", label: "Sign up" }, { href: "/admin/apps", label: "Admin" }].map((link) => (
+              {[{ href: "/", label: "Home" }, ...primaryLinks, ...(isAuthenticated ? [] : [{ href: "/login", label: "Log in" }, { href: "/signup", label: "Sign up" }]), { href: "/admin/apps", label: "Admin" }].map((link) => (
                 <MobileNavLink key={link.href} {...link} active={isActivePath(pathname, link.href)} onClick={() => setMobileOpen(false)} />
               ))}
+              {isAuthenticated ? <>
+                <button type="button" onClick={() => void logout("current")} disabled={logoutPending !== null} className="rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60">
+                  {logoutPending === "current" ? "Logging out..." : "Log out this device"}
+                </button>
+                <button type="button" onClick={() => void logout("all")} disabled={logoutPending !== null} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-wait disabled:opacity-60">
+                  {logoutPending === "all" ? "Logging out..." : "Log out all devices"}
+                </button>
+              </> : null}
             </div>
             {navGroups.map((group) => (
               <section key={group.title} className="space-y-2 border-t border-slate-100 pt-3">

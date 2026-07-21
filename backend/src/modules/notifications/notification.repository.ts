@@ -1,5 +1,6 @@
 import { NotificationPriority, Prisma } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
+import { ownedByUser } from "../../security/ownerScope.js";
 import type { UpdateNotificationSettingsInput } from "./notification.validators.js";
 
 export const notificationRepository = {
@@ -31,15 +32,17 @@ export const notificationRepository = {
     return { items, total };
   },
 
-  findById(id: string) {
-    return prisma.notification.findUnique({ where: { id } });
+  findByIdForUser(id: string, userId: string) {
+    return prisma.notification.findFirst({ where: ownedByUser(id, userId) });
   },
 
-  markRead(id: string) {
-    return prisma.notification.update({
-      where: { id },
+  async markReadForUser(id: string, userId: string) {
+    const result = await prisma.notification.updateMany({
+      where: ownedByUser(id, userId),
       data: { read: true },
     });
+    if (result.count !== 1) return null;
+    return prisma.notification.findFirst({ where: ownedByUser(id, userId) });
   },
 
   markAllRead(userId: string) {
@@ -65,4 +68,3 @@ export const notificationRepository = {
     });
   },
 };
-

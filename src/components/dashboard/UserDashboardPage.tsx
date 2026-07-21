@@ -51,11 +51,8 @@ export function StatusBadge({ status }: { status: ReportStatus }) {
 
 function evidenceLabel(status: EvidenceStatus) {
   const labels: Record<EvidenceStatus, string> = {
-    none: "No evidence uploaded",
-    private: "Evidence private",
-    under_review: "Evidence under review",
-    accepted_for_verification: "Evidence accepted for verification",
-    rejected_for_safety: "Evidence rejected for safety reasons",
+    none: "No evidence listed",
+    not_collected: "Evidence not collected by Trust Loans",
   };
   return labels[status];
 }
@@ -102,7 +99,7 @@ export function DashboardStatusCards({
     ["Needs More Info", summary.needsMoreInfo, "Action needed to clarify or redact data", "needs_more_info"],
     ["Rejected / Not Published", summary.rejected, "Could not publish due to policy reasons", "rejected"],
     ["Drafts", summary.drafts, "Saved but not submitted yet", "draft"],
-    ["Private Evidence Files", summary.evidenceFiles, "Stored privately for moderation or verification", "all"],
+    ["Evidence Reminders", summary.evidenceReminders, "Checklist notes only; evidence files stay with you", "all"],
   ] as const;
 
   return (
@@ -155,7 +152,7 @@ export function ReportCard({
       <div className="mt-3 flex flex-wrap gap-2">
         <button onClick={onView} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">View Details</button>
         <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Edit Draft</button>
-        <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Add Evidence</button>
+        <Link href="/dashboard/evidence" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Prepare Evidence List</Link>
         <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Withdraw Review</button>
         <Link href={report.publicUrl} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">View Public Review</Link>
       </div>
@@ -184,16 +181,17 @@ export function ReportDetailDrawer({
       <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
         <div className="rounded-lg bg-slate-50 p-3">Incident date: {report.updatedAt}</div>
         <div className="rounded-lg bg-slate-50 p-3">Loan amount range: Rs 5,000 - Rs 25,000</div>
-        <div className="rounded-lg bg-slate-50 p-3">Privacy: {report.privacy.displayMode}, evidence private: {report.privacy.evidencePrivate ? "Yes" : "No"}</div>
+        <div className="rounded-lg bg-slate-50 p-3">Privacy: {report.privacy.displayMode}, evidence collected by Trust Loans: No</div>
         <div className="rounded-lg bg-slate-50 p-3">Public visibility: {report.status === "published" ? "Visible publicly" : "Not public yet"}</div>
         <div className="rounded-lg bg-slate-50 p-3">Company response: Not available</div>
       </div>
       <div className="mt-3">
-        <p className="text-sm font-semibold text-slate-900">Evidence files (masked)</p>
-        <div className="mt-1 flex flex-wrap gap-2">
+        <p className="text-sm font-semibold text-slate-900">Evidence reminder</p>
+        <p className="mt-1 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600">Trust Loans does not collect or link evidence files to reviews. Keep originals securely and submit them directly to the appropriate authority when required.</p>
+        <div className="hidden">
           {report.evidenceFiles.length ? report.evidenceFiles.map((f) => <span key={f} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">{f}</span>) : <span className="text-xs text-slate-500">No evidence files linked to this review.</span>}
         </div>
-        <div className="mt-2 space-y-2">
+        <div className="hidden">
           <input value={evidenceId} onChange={(e) => setEvidenceId(e.target.value)} placeholder="Enter evidence ID to fetch private metadata" className="w-full rounded border border-slate-300 px-2 py-1 text-xs" />
           {evidenceQuery.data && (
             <div className="rounded bg-slate-50 p-2 text-xs text-slate-700">
@@ -252,8 +250,8 @@ export function HarassmentCaseFolderSection({ folder }: { folder: UserDashboardD
         <div className="rounded-lg bg-slate-50 p-3 text-sm">Review/report: {folder.reportTitle} ({folder.reportId})</div>
         <div className="rounded-lg bg-slate-50 p-3 text-sm">Status: <StatusBadge status={folder.reportStatus} /></div>
         <div className="rounded-lg bg-slate-50 p-3 text-sm">
-          Evidence files:
-          <div className="mt-1 flex flex-wrap gap-1">{folder.evidenceFiles.map((f) => <span key={f} className="rounded-full bg-white px-2 py-1 text-xs">{f}</span>)}</div>
+          Evidence reminders:
+          <div className="mt-1 text-xs text-slate-600">Original evidence stays with the user and is not stored by Trust Loans.</div>
         </div>
         <div className="rounded-lg bg-slate-50 p-3 text-sm">
           Complaint templates used:
@@ -317,16 +315,16 @@ export function ModerationStatusHelp() {
 export function EvidenceVaultSection({ vault }: { vault: UserDashboardData["evidenceVault"] }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-3 text-lg font-semibold text-slate-900">Evidence vault</h2>
+      <h2 className="mb-3 text-lg font-semibold text-slate-900">Evidence checklist</h2>
       <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
-        <div className="rounded-lg bg-slate-50 p-3">Total files: {vault.totalFiles}</div>
-        <div className="rounded-lg bg-slate-50 p-3">Pending review: {vault.pendingReview}</div>
-        <div className="rounded-lg bg-slate-50 p-3">Accepted: {vault.acceptedForVerification}</div>
-        <div className="rounded-lg bg-slate-50 p-3">Rejected: {vault.rejectedForSafety}</div>
+        <div className="rounded-lg bg-slate-50 p-3">Checklist reminders: {vault.totalReminders}</div>
+        <div className="rounded-lg bg-slate-50 p-3">Files stored by Trust Loans: {vault.filesStoredByTrustLoans}</div>
+        <div className="rounded-lg bg-slate-50 p-3">Uploads enabled: {vault.uploadsEnabled ? "Yes" : "No"}</div>
+        <div className="rounded-lg bg-slate-50 p-3">Submit originals externally: {vault.externalSubmissionRequired ? "Yes" : "No"}</div>
       </div>
       <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-        Evidence is private by default and may be used only for moderation or verification. Do not upload Aadhaar, PAN, OTPs, passwords, or
-        private images.
+        Trust Loans does not collect, store, verify, certify, preview, scan, redact, transcribe, share, or provide download links for evidence.
+        Keep originals securely and submit them directly to the appropriate official authority when required.
       </p>
     </section>
   );

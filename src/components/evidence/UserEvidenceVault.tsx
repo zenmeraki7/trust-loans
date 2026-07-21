@@ -1,30 +1,110 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 type EvidenceKind = "screenshot" | "recording" | "receipt" | "document" | "url" | "phone" | "note";
-type EvidenceItem = { id: string; owner: string; caseName: string; kind: EvidenceKind; name: string; detail: string; createdAt: string; size?: number; mimeType?: string };
-const DB_NAME = "trust-loans-evidence-vault";
-const STORE = "items";
+type EvidenceChecklistItem = { id: string; caseName: string; kind: EvidenceKind; detail: string; createdAt: string };
 
-function ownerKey() { try { const auth = JSON.parse(localStorage.getItem("trust-loans-auth") || "null") as { email?: string } | null; return auth?.email || "local-user"; } catch { return "local-user"; } }
-function openVault() { return new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(DB_NAME, 1); request.onupgradeneeded = () => { const db = request.result; if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id" }); }; request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
-async function listItems(owner: string) { const db = await openVault(); return new Promise<EvidenceItem[]>((resolve, reject) => { const request = db.transaction(STORE, "readonly").objectStore(STORE).getAll(); request.onsuccess = () => resolve((request.result as EvidenceItem[]).filter((item) => item.owner === owner).sort((a, b) => b.createdAt.localeCompare(a.createdAt))); request.onerror = () => reject(request.error); }); }
-async function storeItem(item: EvidenceItem, blob?: Blob) { const db = await openVault(); return new Promise<void>((resolve, reject) => { const request = db.transaction(STORE, "readwrite").objectStore(STORE).put({ ...item, blob }); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); }); }
-async function removeItem(id: string) { const db = await openVault(); return new Promise<void>((resolve, reject) => { const request = db.transaction(STORE, "readwrite").objectStore(STORE).delete(id); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); }); }
-async function readStoredBlob(id: string) { const db = await openVault(); return new Promise<Blob | undefined>((resolve, reject) => { const request = db.transaction(STORE, "readonly").objectStore(STORE).get(id); request.onsuccess = () => resolve(request.result?.blob as Blob | undefined); request.onerror = () => reject(request.error); }); }
+const STORAGE_KEY = "trust-loans-evidence-checklist";
+const kindLabels: Record<EvidenceKind, string> = {
+  screenshot: "Screenshot to keep on your device",
+  recording: "Call recording to keep securely",
+  receipt: "Payment receipt to preserve",
+  document: "Document to keep securely",
+  url: "URL or profile link",
+  phone: "Phone number or account",
+  note: "Incident note",
+};
 
-const kindLabels: Record<EvidenceKind, string> = { screenshot: "Screenshot", recording: "Call recording", receipt: "Payment receipt", document: "Document", url: "URL", phone: "Phone number", note: "Incident note" };
-const fileKind = (file: File): EvidenceKind => file.type.startsWith("image/") ? "screenshot" : file.type.startsWith("audio/") || file.type.startsWith("video/") ? "recording" : file.type === "application/pdf" || file.type.startsWith("text/") ? "document" : "receipt";
+function loadChecklist() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") as EvidenceChecklistItem[];
+  } catch {
+    return [];
+  }
+}
 
 export default function UserEvidenceVault() {
-  const [owner, setOwner] = useState("local-user"); const [items, setItems] = useState<EvidenceItem[]>([]); const [caseName, setCaseName] = useState("My current case"); const [kind, setKind] = useState<EvidenceKind>("screenshot"); const [detail, setDetail] = useState(""); const [message, setMessage] = useState(""); const fileRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { const currentOwner = ownerKey(); setOwner(currentOwner); void listItems(currentOwner).then(setItems).catch(() => setMessage("This browser could not open private storage.")); }, []);
+  const [items, setItems] = useState<EvidenceChecklistItem[]>([]);
+  const [caseName, setCaseName] = useState("My current case");
+  const [kind, setKind] = useState<EvidenceKind>("screenshot");
+  const [detail, setDetail] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setItems(loadChecklist());
+  }, []);
+
   const cases = useMemo(() => Array.from(new Set(items.map((item) => item.caseName))), [items]);
-  const refresh = () => void listItems(owner).then(setItems);
-  const addTextEvidence = async () => { if (!detail.trim()) return; const item: EvidenceItem = { id: crypto.randomUUID(), owner, caseName: caseName.trim() || "My current case", kind, name: kindLabels[kind], detail: detail.trim(), createdAt: new Date().toISOString() }; await storeItem(item); setDetail(""); setMessage("Evidence saved privately on this device."); refresh(); };
-  const addFiles = async (files: FileList | null) => { if (!files?.length) return; for (const file of Array.from(files)) { const item: EvidenceItem = { id: crypto.randomUUID(), owner, caseName: caseName.trim() || "My current case", kind: fileKind(file), name: file.name, detail: "", size: file.size, mimeType: file.type, createdAt: new Date().toISOString() }; await storeItem(item, file); } setMessage(`${files.length} file${files.length === 1 ? "" : "s"} saved privately on this device.`); refresh(); if (fileRef.current) fileRef.current.value = ""; };
-  const download = async (item: EvidenceItem) => { const blob = await readStoredBlob(item.id); if (!blob) { await navigator.clipboard?.writeText(item.detail); setMessage("Text evidence copied."); return; } const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = item.name; link.click(); URL.revokeObjectURL(url); };
-  const deleteItem = async (id: string) => { await removeItem(id); refresh(); };
-  return <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8"><section className="max-w-3xl"><p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">Private case workspace</p><h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-5xl">Evidence Vault</h1><p className="mt-4 text-base leading-7 text-slate-600 sm:text-lg">Organize screenshots, recordings, payment receipts, URLs, phone numbers, and documents by case. Evidence stays in this browser on this device by default.</p></section><section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><strong>Privacy first:</strong> Do not store OTPs, passwords, Aadhaar/PAN, children’s photos, or unrelated private data. This local vault is not a substitute for an encrypted backup; export only to a device you control.</section><section className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]"><article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-xl font-bold text-slate-950">Add evidence</h2><label className="mt-4 block text-sm font-semibold text-slate-700">Case name<input value={caseName} onChange={(event) => setCaseName(event.target.value)} className="mt-1 min-h-11 w-full" placeholder="e.g. CashNest harassment" /></label><label className="mt-3 block text-sm font-semibold text-slate-700">Evidence type<select value={kind} onChange={(event) => setKind(event.target.value as EvidenceKind)} className="mt-1 min-h-11 w-full">{Object.entries(kindLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="mt-3 block text-sm font-semibold text-slate-700">URL, phone number, or note<textarea value={detail} onChange={(event) => setDetail(event.target.value)} className="mt-1 min-h-24 w-full" placeholder="Add the exact URL, caller number, payment ID, or dated facts" /></label><button type="button" onClick={() => void addTextEvidence()} className="mt-3 min-h-11 w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">Save text evidence</button><div className="my-4 border-t border-slate-100" /><label className="block text-sm font-semibold text-slate-700">Upload screenshot, recording, receipt, or document<input ref={fileRef} type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.csv" onChange={(event) => void addFiles(event.target.files)} className="mt-2 block w-full text-sm" /></label><p className="mt-2 text-xs leading-5 text-slate-500">Files are stored in this browser’s IndexedDB and are not uploaded by this vault.</p></article><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold text-slate-950">Your evidence</h2><p className="mt-1 text-sm text-slate-600">Owner: {owner}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{items.length} item{items.length === 1 ? "" : "s"}</span></div>{cases.length ? <div className="mt-4 flex flex-wrap gap-2">{cases.map((name) => <button type="button" key={name} onClick={() => setCaseName(name)} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${caseName === name ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"}`}>{name}</button>)}</div> : null}<div className="mt-4 grid gap-3">{items.length ? items.filter((item) => item.caseName === caseName).map((item) => <article key={item.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">{kindLabels[item.kind]}</span><h3 className="mt-2 break-all text-sm font-semibold text-slate-950">{item.name}</h3></div><time className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</time></div>{item.detail ? <p className="mt-2 break-words text-sm leading-6 text-slate-600">{item.detail}</p> : <p className="mt-2 text-xs text-slate-500">{item.mimeType || "File"} · {Math.round((item.size || 0) / 1024)} KB</p>}<div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void download(item)} className="min-h-10 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">{item.detail ? "Copy" : "Download"}</button><button type="button" onClick={() => void deleteItem(item.id)} className="min-h-10 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700">Delete</button></div></article>) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No evidence saved for this case yet.</p>}</div></section></section>{message ? <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p> : null}</main>;
+  const visibleItems = items.filter((item) => item.caseName === caseName);
+
+  const persist = (next: EvidenceChecklistItem[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setItems(next);
+  };
+
+  const addChecklistItem = () => {
+    if (!detail.trim()) return;
+    const next = [
+      {
+        id: crypto.randomUUID(),
+        caseName: caseName.trim() || "My current case",
+        kind,
+        detail: detail.trim(),
+        createdAt: new Date().toISOString(),
+      },
+      ...items,
+    ];
+    persist(next);
+    setDetail("");
+    setMessage("Evidence checklist item saved on this device. No evidence file was uploaded or stored by Trust Loans.");
+  };
+
+  const deleteItem = (id: string) => {
+    persist(items.filter((item) => item.id !== id));
+    setMessage("Checklist item removed from this device.");
+  };
+
+  return (
+    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <section className="max-w-3xl">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">Evidence preparation</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-5xl">Evidence checklist</h1>
+        <p className="mt-4 text-base leading-7 text-slate-600 sm:text-lg">
+          Trust Loans does not collect, store, verify, certify, preview, download, share, redact, scan, or transcribe your evidence. Use this page only to list what you should keep securely and submit directly to the appropriate authority when required.
+        </p>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+        <strong>Important:</strong> Keep original screenshots, recordings, call logs, messages, receipts, and documents on a device or storage location you control. Submit evidence directly to the lender, regulated entity, grievance officer, regulator, police, cybercrime authority, court, or other appropriate authority when required.
+      </section>
+
+      <section className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-950">Add an evidence checklist item</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Do not upload files here. Add a short reminder of what evidence exists and where you keep it.</p>
+          <label className="mt-4 block text-sm font-semibold text-slate-700">Case name<input value={caseName} onChange={(event) => setCaseName(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base" placeholder="e.g. CashNest harassment" /></label>
+          <label className="mt-3 block text-sm font-semibold text-slate-700">Evidence type<select value={kind} onChange={(event) => setKind(event.target.value as EvidenceKind)} className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base">{Object.entries(kindLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label className="mt-3 block text-sm font-semibold text-slate-700">Reminder note<textarea value={detail} onChange={(event) => setDetail(event.target.value)} className="mt-1 min-h-28 w-full rounded-xl border border-slate-300 p-3 text-base" placeholder="Example: WhatsApp screenshots from +91… saved in phone gallery; payment receipt saved in bank app." /></label>
+          <button type="button" onClick={addChecklistItem} className="mt-3 min-h-11 w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">Save checklist item</button>
+        </article>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">Your checklist</h2>
+              <p className="mt-1 text-sm text-slate-600">Only short checklist notes are kept in this browser.</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{items.length} item{items.length === 1 ? "" : "s"}</span>
+          </div>
+          {cases.length ? <div className="mt-4 flex flex-wrap gap-2">{cases.map((name) => <button type="button" key={name} onClick={() => setCaseName(name)} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${caseName === name ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"}`}>{name}</button>)}</div> : null}
+          <div className="mt-4 grid gap-3">{visibleItems.length ? visibleItems.map((item) => <article key={item.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">{kindLabels[item.kind]}</span><p className="mt-2 break-words text-sm leading-6 text-slate-700">{item.detail}</p></div><time className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</time></div><button type="button" onClick={() => deleteItem(item.id)} className="mt-3 min-h-10 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700">Remove reminder</button></article>) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No checklist items for this case yet.</p>}</div>
+        </section>
+      </section>
+
+      {message ? <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p> : null}
+      <Link href="/complaint-wizard" className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white">Use checklist in complaint wizard</Link>
+    </main>
+  );
 }

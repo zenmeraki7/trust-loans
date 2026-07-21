@@ -160,7 +160,7 @@ function ScoreBreakdown({ metrics }: { metrics: ScoreMetric[] }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-base font-bold text-slate-950">Score breakdown</h2>
+        <h2 className="text-base font-bold text-slate-950">Transparent safety assessment</h2>
         <Link href="/review-policy" className="text-xs font-semibold text-blue-700">How is this calculated?</Link>
       </div>
       <div className="space-y-4">
@@ -274,6 +274,72 @@ function ContactInfo({ app }: { app: AppProfile }) {
   );
 }
 
+function ProfileFactValue({ value }: { value: string | string[] }) {
+  if (Array.isArray(value)) {
+    return value.length ? (
+      <span className="flex flex-wrap justify-end gap-1">
+        {value.map((item) => <span key={item} className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{item}</span>)}
+      </span>
+    ) : <span className="italic text-slate-400">Not listed</span>;
+  }
+  if (!value) return <span className="italic text-slate-400">Not listed</span>;
+  if (value.startsWith("http")) return <a href={value} target="_blank" rel="noreferrer" className="break-all font-semibold text-blue-700 underline">{value}</a>;
+  return <span className="font-medium text-slate-900">{value}</span>;
+}
+
+function PublicProfileFacts({ app }: { app: AppProfile }) {
+  const rows: Array<[string, string | string[]]> = [
+    ["Public name", app.publicName],
+    ["Legal entity name", app.legalEntityName],
+    ["Business type", app.businessType],
+    ["Website", app.website],
+    ["Play Store", app.playStoreUrl],
+    ["App Store", app.appStoreUrl],
+    ["Customer support email", app.support.email],
+    ["Customer support phone", app.support.phone],
+    ["Grievance officer", app.grievanceOfficer.name],
+    ["Grievance email", app.grievanceOfficer.email],
+    ["Grievance phone", app.grievanceOfficer.phone],
+    ["Associated NBFC / regulated entity", app.associatedRegulatedEntity],
+    ["RBI registration number", app.rbiRegistrationNumber],
+    ["RBI registration verified on", app.rbiRegistrationVerifiedAt],
+    ["RBI registration source", app.rbiRegistrationSourceUrl],
+    ["Interest-rate range", app.interestRateRange],
+    ["Processing fees", app.processingFees],
+    ["Late-payment charges", app.latePaymentCharges],
+    ["Loan tenure", app.loanTenure],
+    ["Privacy disclosure", app.privacyDisclosure],
+    ["Contact-access disclosure", app.contactAccessDisclosure],
+    ["Recovery-practice information", app.recoveryPracticeInfo],
+    ["Known complaint categories", app.knownComplaintCategories],
+    ["Public warning labels", app.publicWarningLabels],
+    ["Structured regulatory actions", app.regulatoryActions.map((action) => `${action.authorityName}: ${action.title} (${action.severity.toLowerCase()})`)],
+    ["Verification status", statusMap[app.status].label],
+    ["Data source", app.dataSource],
+    ["Last reviewed date", app.lastReviewedAt || app.lastUpdated],
+  ];
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-bold text-slate-950">Public profile facts</h2>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Core lender, pricing, disclosure, verification, and complaint metadata for this profile.</p>
+        </div>
+        {app.publicWarningLabels.length ? <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Warnings listed</span> : null}
+      </div>
+      <dl className="mt-4 grid gap-2 text-sm md:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-4 rounded-xl bg-slate-50 p-3">
+            <dt className="text-slate-500">{label}</dt>
+            <dd className="max-w-[58%] text-right"><ProfileFactValue value={value} /></dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 function IssueTiles({ reviews }: { reviews: Review[] }) {
   const allTags = reviews.flatMap((review) => review.tags);
   const issueNames = ["Harassment", "Hidden Charges", "Data Misuse", "Threat Calls", "Contact List Abuse", "Poor Support"];
@@ -359,6 +425,7 @@ export default function LoanAppProfilePage({ slug }: { slug: string }) {
         <AppSummaryCard app={app} />
         <div className="space-y-5">
           <RatingsOverview app={app} />
+          <PublicProfileFacts app={app} />
           <ScoreBreakdown metrics={app.scoreBreakdown} />
           <ContactInfo app={app} />
           <IssueTiles reviews={reviews} />

@@ -1,0 +1,6 @@
+ALTER TABLE "User"
+  ADD COLUMN IF NOT EXISTS "passwordHash" TEXT,
+  ADD COLUMN IF NOT EXISTS "passwordSalt" TEXT,
+  ADD COLUMN IF NOT EXISTS "passwordUpdatedAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "passwordResetHash" TEXT,
+  ADD COLUMN IF NOT EXISTS "passwordResetExpires" TIMESTAMP(3);

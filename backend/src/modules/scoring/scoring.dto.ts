@@ -6,15 +6,16 @@ export const toScoringConfigDto = (config: ScoringConfig) => ({
   name: config.name,
   active: config.active,
   weights: {
-    averageRating: config.averageRatingWeight,
-    reviewVolume: config.reviewVolumeWeight,
-    recentComplaintTrend: config.recentComplaintTrendWeight,
-    complaintSeverity: config.complaintSeverityWeight,
-    verifiedBorrowerSignals: config.verifiedBorrowerWeight,
-    companyResponseActivity: config.companyResponseWeight,
-    grievanceAvailability: config.grievanceAvailabilityWeight,
-    publicDetailVerification: config.publicDetailVerificationWeight,
-    reviewIntegrity: config.reviewIntegrityWeight,
+    regulatoryIdentityClarity: config.publicDetailVerificationWeight,
+    interestFeeTransparency: config.hiddenChargeComplaintPenalty,
+    grievanceContactAvailability: config.grievanceAvailabilityWeight,
+    privacyDisclosureClarity: config.privacyComplaintPenalty,
+    recoveryRelatedComplaints: config.complaintSeverityWeight,
+    contactAccessComplaints: config.privacyComplaintPenalty,
+    repeatedHarassmentReports: config.recentComplaintTrendWeight,
+    appStoreDomainConsistency: config.reviewIntegrityWeight,
+    confirmedRegulatoryActions: config.staleVerificationPenalty,
+    complaintResponsiveness: config.companyResponseWeight,
   },
   penalties: {
     severeComplaint: config.severeComplaintPenalty,
@@ -26,4 +27,3 @@ export const toScoringConfigDto = (config: ScoringConfig) => ({
 });
 
 export const toScoreBreakdownDto = (breakdown: ScoreBreakdown) => breakdown;
-

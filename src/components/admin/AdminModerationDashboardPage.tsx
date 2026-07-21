@@ -178,14 +178,17 @@ export function EvidenceReviewPanel({ files }: { files: ModerationDashboardData[
   const actions = useEvidenceDecisionActions();
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="mb-2 text-sm font-semibold text-slate-900">Evidence review (private by default)</h3>
+      <h3 className="mb-2 text-sm font-semibold text-slate-900">Evidence storage disabled</h3>
+      <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+        Trust Loans does not collect, store, preview, scan, redact, transcribe, share, or provide download links for evidence.
+      </p>
       <div className="space-y-2">
         {files.map((f) => (
           <div key={f.id} className="rounded-lg border border-slate-200 p-2 text-xs">
             <p>{f.nameMasked} • {f.fileType} • uploaded {f.uploadDate}</p>
             <p>Safety scan: {f.safetyScanStatus}</p>
             <AdminStatusBadge status={f.status} />
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="hidden">
               <button onClick={() => secureOpen.mutate({ id: f.id, reasonForAccess: "Moderation evidence review" })} className="rounded border border-slate-300 px-2 py-1">Open securely</button>
               <button onClick={() => void actions.accept(f.id)} className="rounded border border-slate-300 px-2 py-1">Accept for verification</button>
               <button onClick={() => void actions.reject(f.id, "Unsafe content in evidence")} className="rounded border border-slate-300 px-2 py-1">Reject unsafe</button>

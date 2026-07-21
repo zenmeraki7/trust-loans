@@ -1,60 +1,36 @@
-"use client";
+import Link from "next/link";
 
-import { useState } from "react";
-import { useAdminEvidenceDetail, useAdminEvidenceQueue, useEvidenceDecisionActions, useSecureOpenEvidence } from "@/hooks/useEvidence";
-
-function EvidenceStatusBadge({ status }: { status: string }) {
-  return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs">{status.replaceAll("_", " ")}</span>;
-}
+const removedFeatures = [
+  "File uploads",
+  "Malware scanning",
+  "Evidence download URLs",
+  "Document preview workers",
+  "Evidence object storage",
+  "Audio transcription",
+  "Evidence sharing",
+  "Evidence redaction",
+  "Evidence-access logs",
+];
 
 export default function AdminEvidenceVaultPage() {
-  const queue = useAdminEvidenceQueue();
-  const [selectedId, setSelectedId] = useState<string>("");
-  const detail = useAdminEvidenceDetail(selectedId);
-  const secureOpen = useSecureOpenEvidence();
-  const actions = useEvidenceDecisionActions();
-
-  const evidence = queue.data ?? [];
-
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-6">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h1 className="text-xl font-semibold">Admin Evidence Queue</h1>
-          <div className="mt-3 space-y-2">
-            {evidence.map((e) => (
-              <article key={e.id} className="rounded-lg border border-slate-200 p-3 text-xs">
-                <p className="font-semibold">{e.maskedFileName}</p>
-                <p>{e.mimeType} • {new Date(e.uploadedAt).toLocaleString()}</p>
-                <EvidenceStatusBadge status={e.status} />
-                <button onClick={() => setSelectedId(e.id)} className="ml-2 rounded border px-2 py-1">Open</button>
-              </article>
-            ))}
-            {evidence.length === 0 && <p className="text-sm text-slate-600">No evidence records.</p>}
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold">Admin Evidence Detail</h2>
-          {!selectedId && <p className="mt-2 text-sm text-slate-600">Select an evidence record.</p>}
-          {detail.data && (
-            <div className="mt-3 space-y-2 text-xs">
-              <p>{detail.data.maskedFileName}</p>
-              <p>{detail.data.mimeType} • {detail.data.fileSizeBytes} bytes</p>
-              <p>Sensitive flags: {detail.data.sensitiveFlags.join(", ") || "none"}</p>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => secureOpen.mutate({ id: detail.data!.id, reasonForAccess: "Evidence vault secure review" })} className="rounded border px-2 py-1">Secure Review</button>
-                <button onClick={() => void actions.accept(detail.data!.id)} className="rounded border px-2 py-1">Accept</button>
-                <button onClick={() => void actions.privateOnly(detail.data!.id)} className="rounded border px-2 py-1">Private only</button>
-                <button onClick={() => void actions.reject(detail.data!.id, "Unsafe evidence")} className="rounded border px-2 py-1">Reject</button>
-                <button onClick={() => void actions.requestReplacement(detail.data!.id, "Please upload redacted evidence")} className="rounded border px-2 py-1">Request replacement</button>
-                <button onClick={() => void actions.remove(detail.data!.id, "Delete unsafe evidence")} className="rounded border px-2 py-1">Delete</button>
-                <button onClick={() => void actions.escalate(detail.data!.id)} className="rounded border px-2 py-1">Escalate</button>
-              </div>
-              {secureOpen.data?.downloadUrl && <p className="rounded bg-amber-50 p-2 text-amber-900">Opening evidence is logged. Secure URL: {secureOpen.data.downloadUrl}</p>}
-            </div>
-          )}
-        </section>
+    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-5xl">Evidence storage is disabled</h1>
+        <p className="mt-4 text-base leading-7 text-slate-600">
+          Trust Loans does not collect, store, verify, certify, preview, scan, redact, transcribe, share, or provide download links for user evidence.
+          Admins should review only the text, profile data, complaint summaries, moderation notes, and audit records the platform actually holds.
+        </p>
+      </section>
+      <section className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <h2 className="text-xl font-bold text-amber-950">Removed evidence-storage features</h2>
+        <ul className="mt-4 grid gap-2 text-sm leading-6 text-amber-900 sm:grid-cols-2">
+          {removedFeatures.map((feature) => <li key={feature} className="rounded-xl bg-white/70 p-3">{feature}</li>)}
+        </ul>
+      </section>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link href="/admin/moderation" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">Review moderation queue</Link>
+        <Link href="/privacy-safety" className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">View privacy notices</Link>
       </div>
     </main>
   );

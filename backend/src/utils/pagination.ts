@@ -3,7 +3,7 @@ import { z } from "zod";
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-});
+}).strict();
 
 export type PaginationInput = z.infer<typeof paginationQuerySchema>;
 
@@ -26,4 +26,3 @@ export const paginatedResponse = <T>(items: T[], total: number, page: number, li
     totalPages: Math.ceil(total / limit),
   },
 });
-

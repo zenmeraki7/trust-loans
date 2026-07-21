@@ -1,4 +1,4 @@
-import type { LoanApp, ComplaintSummary } from "@prisma/client";
+import type { LoanApp, ComplaintSummary, RegulatoryAction } from "@prisma/client";
 
 export const toPublicLoanAppListItemDto = (app: LoanApp) => ({
   id: app.id,
@@ -7,7 +7,10 @@ export const toPublicLoanAppListItemDto = (app: LoanApp) => ({
   logoUrl: app.logoUrl,
   developerName: app.developerName,
   companyName: app.companyName,
+  legalEntityName: app.legalEntityName,
+  businessType: app.businessType,
   claimedNbfcPartner: app.claimedNbfcPartner,
+  associatedRegulatedEntity: app.associatedRegulatedEntity,
   status: app.status,
   verificationStatus: app.verificationStatus,
   claimStatus: app.claimStatus,
@@ -19,12 +22,26 @@ export const toPublicLoanAppListItemDto = (app: LoanApp) => ({
   updatedAt: app.updatedAt,
 });
 
-export const toPublicLoanAppProfileDto = (app: LoanApp & { complaintSummaries: ComplaintSummary[] }) => ({
+export const toPublicLoanAppProfileDto = (app: LoanApp & { complaintSummaries: ComplaintSummary[]; regulatoryActions?: RegulatoryAction[] }) => ({
   ...toPublicLoanAppListItemDto(app),
   packageName: app.packageName,
   websiteUrl: app.websiteUrl,
   playStoreUrl: app.playStoreUrl,
   appStoreUrl: app.appStoreUrl,
+  rbiRegistrationNumber: app.rbiRegistrationNumber,
+  rbiRegistrationVerifiedAt: app.rbiRegistrationVerifiedAt,
+  rbiRegistrationSourceUrl: app.rbiRegistrationSourceUrl,
+  interestRateRange: app.interestRateRange,
+  processingFees: app.processingFees,
+  latePaymentCharges: app.latePaymentCharges,
+  loanTenure: app.loanTenure,
+  privacyDisclosure: app.privacyDisclosure,
+  contactAccessDisclosure: app.contactAccessDisclosure,
+  recoveryPracticeInfo: app.recoveryPracticeInfo,
+  knownComplaintCategories: app.knownComplaintCategories,
+  publicWarningLabels: app.publicWarningLabels,
+  dataSource: app.dataSource,
+  lastReviewedAt: app.lastReviewedAt,
   grievanceEmail: app.grievanceEmail,
   supportEmail: app.supportEmail,
   supportPhone: app.supportPhone,
@@ -37,5 +54,21 @@ export const toPublicLoanAppProfileDto = (app: LoanApp & { complaintSummaries: C
   })),
   publicSafetyNote:
     "This profile shows public details, app-provided claims, and user-reported patterns. It does not make final legal findings.",
+  regulatoryActions: (app.regulatoryActions ?? []).map((action) => ({
+    id: action.id,
+    authorityName: action.authorityName,
+    authorityJurisdiction: action.authorityJurisdiction,
+    actionType: action.actionType,
+    severity: action.severity,
+    status: action.status,
+    title: action.title,
+    summary: action.summary,
+    orderNumber: action.orderNumber,
+    sourceUrl: action.sourceUrl,
+    sourceDocumentUrl: action.sourceDocumentUrl,
+    sourcePublishedAt: action.sourcePublishedAt,
+    effectiveFrom: action.effectiveFrom,
+    effectiveUntil: action.effectiveUntil,
+    verifiedAt: action.verifiedAt,
+  })),
 });
-

@@ -23,11 +23,12 @@ export const notificationService = {
 
   async markRead(id: string, userId?: string) {
     if (!userId) throw new AppError("Authentication required", 401);
-    const notification = await notificationRepository.findById(id);
-    if (!notification || notification.userId !== userId) {
+    const notification = await notificationRepository.findByIdForUser(id, userId);
+    if (!notification) {
       throw new AppError("Notification not found", 404);
     }
-    const updated = await notificationRepository.markRead(id);
+    const updated = await notificationRepository.markReadForUser(id, userId);
+    if (!updated) throw new AppError("Notification not found", 404);
     await auditLog({
       actorId: userId,
       action: "notification.read",
@@ -71,4 +72,3 @@ export const notificationService = {
     return updated;
   },
 };
-

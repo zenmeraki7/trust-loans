@@ -7,6 +7,16 @@ export type CompareLoanApp = {
   developerName: string;
   companyName: string;
   claimedNbfcPartner: string;
+  legalEntityName: string;
+  associatedRegulatedEntity: string;
+  interestRateRange: string;
+  processingFees: string;
+  loanTenure: string;
+  regulatoryVerificationStatus: "verified" | "claimed" | "under_verification";
+  appStoreAvailability: "both" | "play_store" | "app_store" | "not_listed";
+  knownComplaintCategories: string[];
+  publicWarningLabels: string[];
+  recoveryPracticeInfo: string;
   riskLevel: RiskLevel;
   status: "claimed" | "unclaimed" | "under_review" | "company_responded";
   trustScore: number;

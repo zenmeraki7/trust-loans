@@ -7,7 +7,7 @@ export const safetyScanSchema = z.object({
     body: z.string().trim().max(5000).default(""),
     tags: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
     reviewType: z.nativeEnum(ReviewType).optional(),
-  }),
+  }).strict(),
 });
 
 export type SafetyScanInput = z.infer<typeof safetyScanSchema>["body"];

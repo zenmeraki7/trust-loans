@@ -1,10 +1,12 @@
 import type { Request, Response } from "express";
 import { toModerationReviewDetailDto, toModerationReviewListItemDto } from "./adminModeration.dto.js";
 import { adminModerationService } from "./adminModeration.service.js";
+import { observeDatabaseRead } from "../../security/securityMonitoring.js";
 
 export const adminModerationController = {
   async listReviews(req: Request, res: Response) {
     const result = await adminModerationService.listReviews(req.query);
+    await observeDatabaseRead({ actorId: req.user!.id, requestId: req.requestId, resourceType: "Review", rowCount: result.items.length });
     res.json({ ...result, items: result.items.map(toModerationReviewListItemDto) });
   },
 
@@ -38,4 +40,3 @@ export const adminModerationController = {
     res.json(toModerationReviewDetailDto(review));
   },
 };
-
