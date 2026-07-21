@@ -1,9 +1,26 @@
 import { Prisma, ProfileStatus, ReviewStatus, RiskLevel } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
-import type { CreateLoanAppInput, SuggestLoanAppInput } from "./loanApp.validators.js";
+import type { CreateLoanAppInput, LoanAppSort, SuggestLoanAppInput } from "./loanApp.validators.js";
+
+const orderByFor = (sort: LoanAppSort | undefined): Prisma.LoanAppOrderByWithRelationInput[] => {
+  switch (sort) {
+    case "trust_asc":
+      return [{ trustScore: "asc" }, { updatedAt: "desc" }];
+    case "reviews_desc":
+    case "reported":
+      return [{ reviewCount: "desc" }, { trustScore: "desc" }];
+    case "recent":
+      return [{ createdAt: "desc" }];
+    case "updated":
+      return [{ updatedAt: "desc" }];
+    case "trust_desc":
+    default:
+      return [{ trustScore: "desc" }, { updatedAt: "desc" }];
+  }
+};
 
 export const loanAppRepository = {
-  async findMany(input: { skip: number; take: number; q?: string; riskLevel?: string; verificationStatus?: string }) {
+  async findMany(input: { skip: number; take: number; q?: string; riskLevel?: string; verificationStatus?: string; sort?: LoanAppSort }) {
     const where: Prisma.LoanAppWhereInput = {
       status: { not: ProfileStatus.ARCHIVED },
       ...(input.q
@@ -25,7 +42,7 @@ export const loanAppRepository = {
         where,
         skip: input.skip,
         take: input.take,
-        orderBy: [{ trustScore: "desc" }, { updatedAt: "desc" }],
+        orderBy: orderByFor(input.sort),
       }),
       prisma.loanApp.count({ where }),
     ]);

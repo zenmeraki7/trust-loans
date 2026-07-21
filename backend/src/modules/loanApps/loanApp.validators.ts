@@ -9,8 +9,11 @@ export const listLoanAppsSchema = z.object({
     q: z.string().optional(),
     riskLevel: z.string().optional(),
     verificationStatus: z.string().optional(),
+    sort: z.enum(["trust_desc", "trust_asc", "reviews_desc", "recent", "reported", "updated"]).optional(),
   }),
 });
+
+export type LoanAppSort = NonNullable<z.infer<typeof listLoanAppsSchema>["query"]["sort"]>;
 
 export const slugParamSchema = z.object({
   params: z.object({ slug: z.string().min(1) }),

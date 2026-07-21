@@ -3,18 +3,19 @@ import { auditLog } from "../../utils/auditLogger.js";
 import { getPagination, paginatedResponse } from "../../utils/pagination.js";
 import { toPublicReviewDto } from "../reviews/review.dto.js";
 import { loanAppRepository } from "./loanApp.repository.js";
-import type { CreateLoanAppInput, SuggestLoanAppInput } from "./loanApp.validators.js";
+import type { CreateLoanAppInput, LoanAppSort, SuggestLoanAppInput } from "./loanApp.validators.js";
 
 export const loanAppService = {
   async list(query: unknown) {
     const pagination = getPagination(query);
-    const filters = query as { q?: string; riskLevel?: string; verificationStatus?: string };
+    const filters = query as { q?: string; riskLevel?: string; verificationStatus?: string; sort?: LoanAppSort };
     const { items, total } = await loanAppRepository.findMany({
       skip: pagination.skip,
       take: pagination.take,
       q: filters.q,
       riskLevel: filters.riskLevel,
       verificationStatus: filters.verificationStatus,
+      sort: filters.sort,
     });
     return paginatedResponse(items, total, pagination.page, pagination.limit);
   },
