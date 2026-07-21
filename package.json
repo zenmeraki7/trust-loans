@@ -6,11 +6,14 @@
     "dev": "next dev",
     "dev:fast": "next dev",
     "dev:stable": "node scripts/dev-stable.mjs",
-    "build": "next build",
+    "build": "npm run security:raw-html && next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "secrets:scan": "node scripts/check-secrets.mjs",
+    "test:stored-xss": "npm run security:raw-html && node backend/node_modules/tsx/dist/cli.mjs --test src/lib/publicContent.test.ts",
+    "security:raw-html": "node scripts/check-raw-html.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import GlobalFilterPanel from "@/components/filters/GlobalFilterPanel";
 import { adminAppDbFilterSchema } from "@/config/filterSchemas";
 import { applyGlobalFilters } from "@/lib/filterEngine";
+import { safeImageUrl } from "@/lib/publicContent";
 
 export function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
   const tone: Record<RiskLevel, string> = {
@@ -186,12 +187,12 @@ function CreateLoanAppPanel({
   const updateLogoFile = async (file?: File) => {
     setLocalError("");
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setLocalError("Logo file must be an image.");
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      setLocalError("Logo must be a PNG, JPEG, WebP, or GIF image.");
       return;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      setLocalError("Logo image must be smaller than 4 MB.");
+    if (file.size > 2 * 1024 * 1024) {
+      setLocalError("Logo image must be smaller than 2 MB.");
       return;
     }
     update("logoUrl", await readImageAsDataUrl(file));
@@ -265,10 +266,10 @@ function CreateLoanAppPanel({
               />
               <label className="shrink-0 cursor-pointer border-l border-slate-300 bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
                 Choose image
-                <input type="file" accept="image/*" onChange={(e) => void updateLogoChoice(e)} className="sr-only" />
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => void updateLogoChoice(e)} className="sr-only" />
               </label>
             </div>
-            {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
+            {safeImageUrl(form.logoUrl) ? <img src={safeImageUrl(form.logoUrl)!} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Claimed NBFC partner</label>
@@ -407,46 +408,100 @@ export function AdminAppRecordsTable({
 }) {
   if (apps.length === 0) return <EmptyState />;
   return (
-    <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <table className="min-w-[1200px] text-left text-xs">
-        <thead>
-          <tr className="border-b border-slate-200 text-slate-500">
-            {["App", "Slug", "Package", "Developer", "Company", "Claimed NBFC partner", "Trust score", "Risk", "Reviews", "Verification", "Claim", "Last updated", "Actions"].map((h) => (
-              <th key={h} className="py-2 pr-3">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {apps.map((a) => (
-            <tr key={a.id} className="border-b border-slate-100">
-              <td className="py-2 pr-3">
-                <div className="flex items-center gap-2">
-                  <img src={a.logoUrl} alt={a.name} className="h-8 w-8 rounded border border-slate-200 bg-white p-0.5 object-contain" />
-                  <span className="font-medium text-slate-900">{a.name}</span>
+    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+      <div className="grid gap-3 lg:hidden">
+        {apps.map((a) => (
+          <article key={a.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm shadow-slate-100">
+            <div className="flex items-start gap-3">
+              <img src={a.logoUrl} alt={a.name} className="h-11 w-11 shrink-0 rounded-lg border border-slate-200 bg-white p-1 object-contain" />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-semibold text-slate-950">{a.name}</h3>
+                <p className="mt-0.5 font-mono text-[11px] text-slate-500">{a.slug}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-lg font-semibold text-slate-950">{a.trustScore}</p>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Trust</p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <RiskBadge riskLevel={a.riskLevel} />
+              <VerificationStatusBadge status={a.verificationStatus} />
+              <ClaimStatusBadge status={a.claimStatus} />
+            </div>
+
+            <dl className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-700 sm:grid-cols-2">
+              {[
+                ["Package", a.packageName],
+                ["Developer", a.developerName],
+                ["Company", a.companyName],
+                ["Claimed NBFC", a.claimedNbfcPartner],
+                ["Reviews", a.reviewCount],
+                ["Last updated", a.lastUpdated],
+              ].map(([label, value]) => (
+                <div key={label} className="min-w-0 rounded-lg bg-slate-50 p-2">
+                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
+                  <dd className="mt-0.5 break-words text-slate-800">{value}</dd>
                 </div>
-              </td>
-              <td className="py-2 pr-3 font-mono text-[11px] text-slate-600">{a.slug}</td>
-              <td className="py-2 pr-3">{a.packageName}</td>
-              <td className="py-2 pr-3">{a.developerName}</td>
-              <td className="py-2 pr-3">{a.companyName}</td>
-              <td className="py-2 pr-3">{a.claimedNbfcPartner}</td>
-              <td className="py-2 pr-3">{a.trustScore}</td>
-              <td className="py-2 pr-3"><RiskBadge riskLevel={a.riskLevel} /></td>
-              <td className="py-2 pr-3">{a.reviewCount}</td>
-              <td className="py-2 pr-3"><VerificationStatusBadge status={a.verificationStatus} /></td>
-              <td className="py-2 pr-3"><ClaimStatusBadge status={a.claimStatus} /></td>
-              <td className="py-2 pr-3">{a.lastUpdated}</td>
-              <td className="py-2 pr-3">
-                <div className="flex gap-1">
-                  <button onClick={() => onSelect(a.id)} className="rounded border border-slate-300 px-2 py-1">View</button>
-                  <a href={`/loan-apps/${a.slug}/submit-review`} className="rounded border border-slate-300 px-2 py-1">Review form</a>
-                  <button className="rounded border border-slate-300 px-2 py-1">Verify</button>
-                </div>
-              </td>
+              ))}
+            </dl>
+
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button type="button" onClick={() => onSelect(a.id)} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">
+                View
+              </button>
+              <a href={`/loan-apps/${a.slug}/submit-review`} className="flex min-h-11 items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">
+                Review form
+              </a>
+              <button type="button" className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">
+                Verify
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto lg:block">
+        <table className="min-w-[1200px] text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-500">
+              {["App", "Slug", "Package", "Developer", "Company", "Claimed NBFC partner", "Trust score", "Risk", "Reviews", "Verification", "Claim", "Last updated", "Actions"].map((h) => (
+                <th key={h} className="py-2 pr-3">{h}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {apps.map((a) => (
+              <tr key={a.id} className="border-b border-slate-100">
+                <td className="py-2 pr-3">
+                  <div className="flex items-center gap-2">
+                    <img src={a.logoUrl} alt={a.name} className="h-8 w-8 rounded border border-slate-200 bg-white p-0.5 object-contain" />
+                    <span className="font-medium text-slate-900">{a.name}</span>
+                  </div>
+                </td>
+                <td className="py-2 pr-3 font-mono text-[11px] text-slate-600">{a.slug}</td>
+                <td className="py-2 pr-3">{a.packageName}</td>
+                <td className="py-2 pr-3">{a.developerName}</td>
+                <td className="py-2 pr-3">{a.companyName}</td>
+                <td className="py-2 pr-3">{a.claimedNbfcPartner}</td>
+                <td className="py-2 pr-3">{a.trustScore}</td>
+                <td className="py-2 pr-3"><RiskBadge riskLevel={a.riskLevel} /></td>
+                <td className="py-2 pr-3">{a.reviewCount}</td>
+                <td className="py-2 pr-3"><VerificationStatusBadge status={a.verificationStatus} /></td>
+                <td className="py-2 pr-3"><ClaimStatusBadge status={a.claimStatus} /></td>
+                <td className="py-2 pr-3">{a.lastUpdated}</td>
+                <td className="py-2 pr-3">
+                  <div className="flex gap-1">
+                    <button onClick={() => onSelect(a.id)} className="rounded border border-slate-300 px-2 py-1">View</button>
+                    <a href={`/loan-apps/${a.slug}/submit-review`} className="rounded border border-slate-300 px-2 py-1">Review form</a>
+                    <button className="rounded border border-slate-300 px-2 py-1">Verify</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

@@ -29,11 +29,13 @@ export const adminModerationService = {
     const isPartial = input.status === "PARTIALLY_PUBLISHED";
     const updated = await adminModerationRepository.updateReview({
       id: input.id,
+      allowedCurrentStatuses: [ReviewStatus.SUBMITTED, ReviewStatus.UNDER_MODERATION, ReviewStatus.NEEDS_MORE_INFO, ReviewStatus.ESCALATED],
       status: input.status === "PUBLISHED" ? ReviewStatus.PUBLISHED : ReviewStatus.PARTIALLY_PUBLISHED,
       publicBody: input.publicBody ?? before.publicBody,
       redactionsApplied: isPartial ? true : before.redactionsApplied,
       publishedAt: before.publishedAt ?? new Date(),
     });
+    if (!updated) throw new AppError("Review cannot be approved from its current status", 409);
     await this.afterModerationAction({
       actorId: input.actorId,
       action: "review.approved",
@@ -50,9 +52,11 @@ export const adminModerationService = {
     const before = await this.getReview(input.id);
     const updated = await adminModerationRepository.updateReview({
       id: input.id,
+      allowedCurrentStatuses: [ReviewStatus.SUBMITTED, ReviewStatus.UNDER_MODERATION, ReviewStatus.NEEDS_MORE_INFO, ReviewStatus.ESCALATED],
       status: ReviewStatus.REJECTED,
       publishedAt: null,
     });
+    if (!updated) throw new AppError("Review cannot be rejected from its current status", 409);
     await this.afterModerationAction({
       actorId: input.actorId,
       action: "review.rejected",
@@ -69,8 +73,10 @@ export const adminModerationService = {
     const before = await this.getReview(input.id);
     const updated = await adminModerationRepository.updateReview({
       id: input.id,
+      allowedCurrentStatuses: [ReviewStatus.SUBMITTED, ReviewStatus.UNDER_MODERATION, ReviewStatus.ESCALATED],
       status: ReviewStatus.NEEDS_MORE_INFO,
     });
+    if (!updated) throw new AppError("More information cannot be requested from the review's current status", 409);
     await this.afterModerationAction({
       actorId: input.actorId,
       action: "review.request_info",
@@ -87,11 +93,13 @@ export const adminModerationService = {
     const before = await this.getReview(input.id);
     const updated = await adminModerationRepository.updateReview({
       id: input.id,
+      allowedCurrentStatuses: [ReviewStatus.SUBMITTED, ReviewStatus.UNDER_MODERATION, ReviewStatus.PUBLISHED, ReviewStatus.PARTIALLY_PUBLISHED],
       status: ReviewStatus.PARTIALLY_PUBLISHED,
       publicBody: input.publicBody,
       redactionsApplied: true,
       publishedAt: before.publishedAt ?? new Date(),
     });
+    if (!updated) throw new AppError("Review cannot be redacted from its current status", 409);
     await this.afterModerationAction({
       actorId: input.actorId,
       action: "review.redacted",
@@ -125,4 +133,3 @@ export const adminModerationService = {
     await scoringService.recalculateLoanAppPublicMetrics(input.loanAppId);
   },
 };
-

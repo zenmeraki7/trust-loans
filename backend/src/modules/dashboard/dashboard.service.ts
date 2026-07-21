@@ -1,6 +1,6 @@
-import { ComplaintDraftStatus, EvidenceStatus, Prisma, ReviewStatus } from "@prisma/client";
+import { ComplaintDraftStatus, Prisma, ReviewStatus } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
-import { toDashboardEvidenceStatus, toDashboardReviewStatus, toDashboardRiskLevel, toIso } from "./dashboard.dto.js";
+import { toDashboardReviewStatus, toDashboardRiskLevel, toIso } from "./dashboard.dto.js";
 
 const openCaseStatuses = ["OPEN", "WAITING_FOR_RESPONSE", "ACTION_NEEDED"] as const;
 
@@ -25,18 +25,16 @@ const emptyCaseFolder = {
 
 export const dashboardService = {
   async getUserDashboard(userId: string) {
-    const [user, reviews, evidenceFiles, draftCount, activeCase] = await Promise.all([
+    const [user, reviews, draftCount, activeCase] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.review.findMany({
         where: { userId },
         include: {
           loanApp: true,
-          evidenceFiles: true,
           companyResponses: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 1 },
         },
         orderBy: { updatedAt: "desc" },
       }),
-      prisma.evidenceFile.findMany({ where: { userId, status: { not: EvidenceStatus.DELETED } }, orderBy: { uploadedAt: "desc" } }),
       prisma.complaintDraft.count({ where: { userId, status: { not: ComplaintDraftStatus.DELETED } } }),
       prisma.harassmentCase.findFirst({
         where: { userId, status: { in: [...openCaseStatuses] } },
@@ -57,8 +55,8 @@ export const dashboardService = {
       tags: review.tags,
       submittedAt: toIso(review.createdAt),
       updatedAt: toIso(review.updatedAt),
-      evidenceStatus: toDashboardEvidenceStatus(review.evidenceFiles.map((file) => file.status)),
-      evidenceFiles: review.evidenceFiles.map((file) => file.maskedFileName),
+      evidenceStatus: "not_collected",
+      evidenceFiles: [],
       publicUrl: `/reviews/${review.id}`,
       moderationNotes: moderationNotesForStatus(review.status, review.redactionsApplied),
       privacy: {
@@ -91,15 +89,15 @@ export const dashboardService = {
         needsMoreInfo: reviews.filter((review) => review.status === ReviewStatus.NEEDS_MORE_INFO).length,
         rejected: reviews.filter((review) => review.status === ReviewStatus.REJECTED).length,
         drafts: reviews.filter((review) => review.status === ReviewStatus.DRAFT).length + draftCount,
-        evidenceFiles: evidenceFiles.length,
+        evidenceReminders: 0,
       },
       reports,
       harassmentCaseFolder: activeCase ? mapCaseFolder(activeCase) : emptyCaseFolder,
       evidenceVault: {
-        totalFiles: evidenceFiles.length,
-        pendingReview: evidenceFiles.filter((file) => ["UPLOADED", "SCAN_PENDING", "SENSITIVE_DATA_DETECTED", "PENDING_REVIEW", "REDACTION_REQUIRED", "ESCALATED"].includes(file.status)).length,
-        acceptedForVerification: evidenceFiles.filter((file) => file.status === EvidenceStatus.ACCEPTED_FOR_VERIFICATION).length,
-        rejectedForSafety: evidenceFiles.filter((file) => file.status === EvidenceStatus.REJECTED_FOR_SAFETY).length,
+        totalReminders: 0,
+        filesStoredByTrustLoans: 0,
+        uploadsEnabled: false,
+        externalSubmissionRequired: true,
       },
       savedApps,
     };

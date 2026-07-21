@@ -4,8 +4,6 @@ import { apiClient } from "@/lib/apiClient";
 import { queryKeys } from "@/lib/queryKeys";
 import type { ComplaintDraft, ComplaintFormData, ComplaintOutputType, ComplaintTemplate, GeneratedComplaint } from "@/types/complaintTemplates";
 
-const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "demo-user";
-
 export function useComplaintTemplates() {
   return useQuery({
     queryKey: queryKeys.complaintTemplates(),
@@ -60,8 +58,6 @@ export function useCreateComplaintDraft() {
       apiClient<ComplaintDraft>("/api/complaint-drafts", {
         method: "POST",
         body,
-        userId: DEV_USER_ID,
-        userRole: "USER",
       }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.complaintDrafts() }),
   });
@@ -70,7 +66,7 @@ export function useCreateComplaintDraft() {
 export function useComplaintDrafts() {
   return useQuery({
     queryKey: queryKeys.complaintDrafts(),
-    queryFn: () => apiClient<ComplaintDraft[]>("/api/me/complaint-drafts", { userId: DEV_USER_ID, userRole: "USER" }),
+    queryFn: () => apiClient<ComplaintDraft[]>("/api/me/complaint-drafts"),
   });
 }
 
@@ -78,7 +74,7 @@ export function useComplaintDraft(id: string) {
   return useQuery({
     queryKey: queryKeys.complaintDraft(id),
     enabled: Boolean(id),
-    queryFn: () => apiClient<ComplaintDraft>(`/api/me/complaint-drafts/${id}`, { userId: DEV_USER_ID, userRole: "USER" }),
+    queryFn: () => apiClient<ComplaintDraft>(`/api/me/complaint-drafts/${id}`),
   });
 }
 
@@ -89,8 +85,6 @@ export function useUpdateComplaintDraft(id: string) {
       apiClient<ComplaintDraft>(`/api/me/complaint-drafts/${id}`, {
         method: "PATCH",
         body,
-        userId: DEV_USER_ID,
-        userRole: "USER",
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.complaintDraft(id) });
@@ -105,8 +99,6 @@ export function useDeleteComplaintDraft() {
     mutationFn: (id: string) =>
       apiClient<void>(`/api/me/complaint-drafts/${id}`, {
         method: "DELETE",
-        userId: DEV_USER_ID,
-        userRole: "USER",
       }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.complaintDrafts() }),
   });

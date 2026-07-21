@@ -35,22 +35,6 @@ const features = [
   { title: "Public Transparency", description: "Borrower data becomes safer public insight." },
 ];
 
-const stats = [
-  ["18,246", "Total Reviews"],
-  ["6,521", "Evidence Submissions"],
-  ["1,214", "Companies Listed"],
-  ["93%", "Anonymous Reviews"],
-  ["48hrs", "Avg. First Response Time"],
-];
-
-const scoreBreakdown = [
-  ["Transparency", "7/10", "w-[70%]", "bg-emerald-500"],
-  ["Fee Disclosure", "5/10", "w-[50%]", "bg-amber-500"],
-  ["Collection Conduct Reports", "3/10", "w-[30%]", "bg-rose-500"],
-  ["Support Responsiveness", "4/10", "w-[40%]", "bg-orange-500"],
-  ["Privacy Practices", "5/10", "w-[50%]", "bg-amber-500"],
-];
-
 const faqs = [
   ["Is this a lender?", "No. Trust Loans is a borrower transparency and safety platform. It does not provide loans."],
   ["Can I write a review safely?", "Yes. The Safe Review Writer checks for private data, risky wording, and moderation readiness."],
@@ -73,63 +57,69 @@ export default function HomePage() {
           <div className="home-primary overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
             <div className="grid gap-6 bg-gradient-to-br from-blue-50 via-white to-slate-100 p-6 md:grid-cols-[1fr_0.85fr] md:p-8 lg:p-10">
               <div className="flex flex-col justify-center">
-                <p className="w-fit rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm">
-                  Borrower-first loan app transparency
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">
+                  Borrower protection and loan-app transparency
                 </p>
-                <h1 className="mt-6 max-w-2xl text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                  Check Before You Borrow
+                <h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+                  Understand the loan. Get help with threats and recovery harassment.
                 </h1>
                 <p className="mt-4 max-w-xl text-base leading-7 text-slate-700">
-                  Real borrower reviews, evidence-based insights, safer complaint tools, and company response tracking for loan app users.
+                  Check who is behind a loan app, understand its costs and warning signs, and take safer action if recovery agents threaten, shame, or repeatedly harass you.
                 </p>
 
-                <form action="/loan-apps" className="mt-7 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/5 sm:flex-row">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Link href="/emergency-help" className="rounded-xl bg-rose-600 px-5 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2">
+                    I&apos;m being threatened now
+                  </Link>
+                  <Link href="/complaints/start" className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-900 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+                    Get complaint help
+                  </Link>
+                </div>
+
+                <form action="/loan-apps" className="mt-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/5 sm:flex-row">
                   <label className="sr-only" htmlFor="loan-search">Search loan app or company</label>
                   <input
                     id="loan-search"
                     name="q"
                     className="min-h-12 flex-1 border-0 bg-transparent px-4 text-sm shadow-none focus:ring-0"
-                    placeholder="Search loan app or company..."
+                    placeholder="Search an app or lender..."
                   />
                   <button className="rounded-xl bg-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">
-                    Check App
+                    Check loan app
                   </button>
                 </form>
 
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-2xl font-bold text-slate-950">18,246</p>
-                    <p className="text-sm text-slate-600">Borrower reviews</p>
+                    <p className="text-lg font-bold text-slate-950">Before borrowing</p>
+                    <p className="text-sm text-slate-600">Check the lender, total cost, permissions, and grievance contact.</p>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-2xl font-bold text-slate-950">6,521</p>
-                    <p className="text-sm text-slate-600">Evidence submissions</p>
+                    <p className="text-lg font-bold text-slate-950">If harassment starts</p>
+                    <p className="text-sm text-slate-600">Protect yourself, record the incident details, and choose the right complaint path.</p>
                   </div>
                 </div>
               </div>
 
-              <div className="home-hero-visual relative min-h-[320px] rounded-[2rem] border border-blue-100 bg-white/65 p-6 shadow-inner">
-                <div className="absolute left-8 top-8 rounded-3xl bg-blue-700 p-5 text-white shadow-xl">
-                  <p className="text-sm font-semibold">Borrower Shield</p>
-                  <p className="mt-2 text-4xl font-bold">Safe</p>
-                </div>
-                <div className="absolute bottom-8 right-8 w-52 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl">
-                  <div className="h-3 w-28 rounded-full bg-slate-200" />
-                  <div className="mt-4 flex gap-1">
-                    {[1, 2, 3, 4, 5].map((item) => (
-                      <span key={item} className={item <= 3 ? "text-amber-400" : "text-slate-300"}>★</span>
-                    ))}
-                  </div>
-                  <div className="mt-5 space-y-2">
-                    <div className="h-3 rounded-full bg-slate-200" />
-                    <div className="h-3 w-4/5 rounded-full bg-slate-200" />
-                    <div className="h-3 w-2/3 rounded-full bg-slate-200" />
-                  </div>
-                </div>
-                <div className="absolute bottom-14 left-8 rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-xl">
-                  <p className="text-sm font-semibold text-slate-950">Borrower First</p>
-                  <p className="text-xs text-slate-500">Evidence encouraged</p>
-                </div>
+              <div className="home-hero-visual rounded-[2rem] border border-blue-100 bg-white/80 p-6 shadow-inner md:p-7">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-700">Recovery warning signs</p>
+                <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">Collection pressure should never become intimidation.</h2>
+                <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-700">
+                  {[
+                    "Threats of violence, arrest, or public humiliation",
+                    "Repeated abusive calls or messages",
+                    "Sharing loan details with relatives, friends, or colleagues",
+                    "Misusing contact lists, photos, or personal information",
+                  ].map((warning) => (
+                    <li key={warning} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-rose-600" aria-hidden="true" />
+                      <span>{warning}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/debt-recovery-rules" className="mt-5 inline-flex text-sm font-bold text-blue-700 underline decoration-blue-200 underline-offset-4 hover:decoration-blue-700">
+                  Understand responsible recovery practices
+                </Link>
               </div>
             </div>
 
@@ -199,76 +189,40 @@ export default function HomePage() {
             </div>
           </div>
 
-          <Suspense fallback={<HomeSectionFallback label="app profile" />}>
+          <Suspense fallback={<HomeSectionFallback label="borrower support options" />}>
           <div className="space-y-4">
-            <aside className="h-fit rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5">
-              <h2 className="text-center text-lg font-bold text-slate-950">App Profile</h2>
-              <div className="mt-5 rounded-2xl border border-slate-200 p-5">
-                <p className="text-xs text-slate-500">Home / Loan Apps / MoneyView</p>
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-700 text-xl font-bold text-white">M</div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-950">MoneyView</h3>
-                    <p className="text-xs text-slate-500">WhizDM Innovations Pvt Ltd</p>
-                    <Link href="/entities" className="mt-2 inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Company profile</Link>
-                  </div>
-                </div>
+            <aside className="h-fit overflow-hidden rounded-[1.75rem] border border-rose-200 bg-white shadow-xl shadow-rose-950/5">
+              <div className="bg-rose-600 p-6 text-white">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-rose-100">Help comes first</p>
+                <h2 className="mt-3 text-2xl font-bold tracking-tight text-white">Are recovery agents threatening or harassing you?</h2>
+                <p className="mt-3 text-sm leading-6 text-rose-50">You do not need to finish a long form before seeing urgent safety steps and reporting options.</p>
+                <Link href="/emergency-help" className="mt-5 block rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-rose-700 transition hover:bg-rose-50">
+                  Open emergency help
+                </Link>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-200 p-5">
-                <p className="font-semibold text-slate-950">Borrower Safety Score</p>
-                <div className="mt-4 flex items-end justify-between">
-                  <div>
-                    <p className="text-5xl font-bold text-slate-950">58<span className="text-sm text-slate-400">/100</span></p>
-                    <p className="mt-2 text-xs text-slate-500">Based on 932 reviews and 74 evidence submissions</p>
-                  </div>
-                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">Medium</span>
-                </div>
+              <div className="space-y-1 p-3">
+                {[
+                  ["/complaints/start", "Prepare a complaint", "Answer plain-language questions and generate a structured draft."],
+                  ["/loan-apps", "Understand a loan app", "Check the business identity, fees, complaints, and safety information."],
+                  ["/complaint-tutorials", "Choose where to report", "Find guidance for lender, RBI, cybercrime, and police channels."],
+                ].map(([href, title, detail]) => (
+                  <Link key={href} href={href} className="block rounded-2xl p-4 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900">
+                    <span className="block font-bold text-slate-950">{title}</span>
+                    <span className="mt-1 block text-sm leading-5 text-slate-600">{detail}</span>
+                  </Link>
+                ))}
               </div>
-
-              <div className="mt-4 rounded-2xl border border-slate-200 p-5">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-slate-950">Score Breakdown</p>
-                  <Link href="/review-policy" className="text-xs font-semibold text-blue-700">Methodology</Link>
-                </div>
-                <div className="mt-4 space-y-4">
-                  {scoreBreakdown.map(([label, value, width, color]) => (
-                    <div key={label}>
-                      <div className="mb-1 flex justify-between text-xs">
-                        <span className="text-slate-600">{label}</span>
-                        <span className="font-semibold text-slate-950">{value}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-slate-100">
-                        <div className={`h-2 rounded-full ${width} ${color}`} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-slate-200 p-5 text-sm">
-                <dl className="home-profile-list space-y-3">
-                  <div className="flex justify-between gap-4"><dt className="text-slate-500">Operating Entity</dt><dd className="font-medium text-slate-950">WhizDM Innovations Pvt Ltd</dd></div>
-                  <div className="flex justify-between gap-4"><dt className="text-slate-500">RBI Registered NBFC</dt><dd className="font-medium text-slate-950">No</dd></div>
-                  <div className="flex justify-between gap-4"><dt className="text-slate-500">Company Response</dt><dd className="font-medium text-emerald-700">Yes</dd></div>
-                </dl>
-              </div>
-
-              <Link href="/loan-apps" className="mt-4 block rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-800">
-                Write a Review
-              </Link>
             </aside>
 
             <section className="rounded-[1.5rem] bg-slate-950 p-4 text-white shadow-xl shadow-slate-900/10">
-              <p className="mb-3 text-sm font-semibold text-white">Our platform in numbers</p>
-              <div className="grid grid-cols-2 gap-3">
-              {stats.map(([value, label]) => (
-                <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xl font-bold text-white">{value}</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-300">{label}</p>
-                </div>
-              ))}
-              </div>
+              <h2 className="text-lg font-bold text-white">Before accepting a digital loan</h2>
+              <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+                <li className="border-l-2 border-blue-500 pl-3">Confirm the legal lender and regulated NBFC or bank.</li>
+                <li className="border-l-2 border-blue-500 pl-3">Compare the interest, processing fee, late charges, and total repayment.</li>
+                <li className="border-l-2 border-blue-500 pl-3">Review app permissions and avoid unnecessary contact or media access.</li>
+                <li className="border-l-2 border-blue-500 pl-3">Save official grievance contacts before you need them.</li>
+              </ul>
             </section>
           </div>
           </Suspense>
@@ -280,18 +234,18 @@ export default function HomePage() {
       <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">How it works</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">A safer path from search to action.</h2>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">From uncertainty to action</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">Understand the lender. Recognize harassment. Take the right next step.</h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Trust Loans guides borrowers through the important steps: check the app, understand common risks, submit a safer review, and track private case details when needed.
+              Trust Loans connects loan-app transparency with practical borrower protection, so you can make a safer borrowing decision or respond when recovery conduct crosses the line.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {[
-              ["1", "Search", "Find loan apps, companies, and claimed NBFC partners."],
-              ["2", "Review", "Read borrower experiences and complaint patterns."],
-              ["3", "Report", "Write a safer review or generate a complaint draft."],
-              ["4", "Track", "Use case folders and notifications for updates."],
+              ["1", "Identify", "Find the app, legal lender, associated NBFC, and official contacts."],
+              ["2", "Understand", "Review costs, permissions, complaint patterns, and recovery concerns."],
+              ["3", "Respond", "Get urgent safety guidance or prepare a complaint in plain language."],
+              ["4", "Track", "Keep case details and complaint progress together in your account."],
             ].map(([step, title, detail]) => (
               <div key={step} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-700 text-sm font-bold text-white">{step}</span>

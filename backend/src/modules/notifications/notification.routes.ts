@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../../middlewares/auth.js";
+import { requireAction } from "../../authorization/authorization.js";
 import { validate } from "../../middlewares/validate.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { notificationController } from "./notification.controller.js";
@@ -13,30 +13,29 @@ export const notificationRoutes = Router();
 
 notificationRoutes.get(
   "/notifications",
-  requireAuth,
+  requireAction("notification.read"),
   validate(listNotificationsSchema),
   asyncHandler(notificationController.list),
 );
 notificationRoutes.post(
   "/notifications/read-all",
-  requireAuth,
+  requireAction("notification.write"),
   asyncHandler(notificationController.markAllRead),
 );
 notificationRoutes.post(
   "/notifications/:id/read",
-  requireAuth,
+  requireAction("notification.write"),
   validate(notificationIdParamSchema),
   asyncHandler(notificationController.markRead),
 );
 notificationRoutes.get(
   "/notification-settings",
-  requireAuth,
+  requireAction("notification.read"),
   asyncHandler(notificationController.getSettings),
 );
 notificationRoutes.patch(
   "/notification-settings",
-  requireAuth,
+  requireAction("notification.write"),
   validate(updateNotificationSettingsSchema),
   asyncHandler(notificationController.updateSettings),
 );
-

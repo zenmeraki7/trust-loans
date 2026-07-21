@@ -1,6 +1,7 @@
 import GrievanceContactDirectoryPage from "@/components/grievance/GrievanceContactDirectoryPage";
 import type { ApiLoanApp, PaginatedResponse } from "@/types/apiDtos";
 import type { GrievanceDirectoryData, VerificationStatus } from "@/types/grievanceDirectory";
+import { sanitizeApiPayload } from "@/lib/publicContent";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
@@ -47,7 +48,7 @@ async function getGrievanceDirectory(): Promise<GrievanceDirectoryData> {
   if (!response.ok) {
     throw new Error("Could not load loan apps for grievance directory.");
   }
-  const apps = (await response.json()) as PaginatedResponse<ApiLoanApp>;
+  const apps = sanitizeApiPayload(await response.json()) as PaginatedResponse<ApiLoanApp>;
 
   return {
     search: { query: "" },

@@ -2,7 +2,6 @@ import { ClaimStatus, ProfileStatus, RiskLevel, VerificationStatus } from "@pris
 import { prisma } from "../../prisma/client.js";
 
 const PLACEHOLDER_APP_COUNT = 70;
-const logoColors = ["#1d4ed8", "#0f766e", "#7c3aed", "#be123c", "#b45309", "#0369a1", "#4338ca"];
 const suppliedLoanAppNames = [
   "Moneyview",
   "Bajaj Finserv",
@@ -55,12 +54,7 @@ const suppliedLoanAppNames = [
   "PayRupik",
 ];
 
-const placeholderLogo = (index: number) => {
-  const label = `LA${String(index).padStart(2, "0")}`;
-  const background = logoColors[(index - 1) % logoColors.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="20" fill="${background}"/><text x="48" y="55" fill="white" font-family="Arial,sans-serif" font-size="25" font-weight="700" text-anchor="middle">${label}</text></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-};
+const placeholderLogo = (_index: number) => "/images/default-app-logo.svg";
 
 export async function seedPlaceholderLoanApps() {
   const apps = Array.from({ length: PLACEHOLDER_APP_COUNT }, (_, offset) => {
