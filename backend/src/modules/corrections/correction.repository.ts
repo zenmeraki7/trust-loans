@@ -1,12 +1,13 @@
 import { CorrectionStatus, Prisma } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
+import { ownedByRequester } from "../../security/ownerScope.js";
 import type { CreateCorrectionInput } from "./correction.validators.js";
 
 export const correctionRepository = {
-  create(input: CreateCorrectionInput) {
+  create(input: CreateCorrectionInput, requesterId: string) {
     return prisma.correctionRequest.create({
       data: {
-        requesterId: input.requesterId,
+        requesterId,
         requestType: input.requestType,
         publicItemType: input.publicItemType,
         publicItemId: input.publicItemId,
@@ -19,8 +20,12 @@ export const correctionRepository = {
     });
   },
 
-  findById(id: string) {
+  findByIdForAdmin(id: string) {
     return prisma.correctionRequest.findUnique({ where: { id } });
+  },
+
+  findByIdForRequester(id: string, requesterId: string) {
+    return prisma.correctionRequest.findFirst({ where: ownedByRequester(id, requesterId) });
   },
 
   async findMany(input: { skip: number; take: number; status?: CorrectionStatus; requestType?: string; requesterId?: string }) {
@@ -41,11 +46,12 @@ export const correctionRepository = {
     return { items, total };
   },
 
-  updateStatus(id: string, status: CorrectionStatus) {
-    return prisma.correctionRequest.update({
-      where: { id },
+  async updateStatusForAdmin(id: string, allowedCurrentStatuses: readonly CorrectionStatus[], status: CorrectionStatus) {
+    const result = await prisma.correctionRequest.updateMany({
+      where: { id, status: { in: [...allowedCurrentStatuses] } },
       data: { status },
     });
+    if (result.count !== 1) return null;
+    return prisma.correctionRequest.findUnique({ where: { id } });
   },
 };
-

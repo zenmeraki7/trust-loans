@@ -1,9 +1,10 @@
 import { EvidenceStatus } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
+import { ownedByUser } from "../../security/ownerScope.js";
 import type { CompleteUploadInput } from "./evidence.validators.js";
 
 export const evidenceRepository = {
-  create(input: { userId: string; maskedFileName: string; originalFileNameHash: string } & CompleteUploadInput) {
+  create(input: { userId: string; maskedFileName: string; originalFileNameHash: string; serverStatus: EvidenceStatus } & CompleteUploadInput) {
     return prisma.evidenceFile.create({
       data: {
         userId: input.userId,
@@ -14,34 +15,43 @@ export const evidenceRepository = {
         originalFileNameHash: input.originalFileNameHash,
         mimeType: input.mimeType,
         fileSizeBytes: input.fileSizeBytes,
-        status: input.status ?? EvidenceStatus.SCAN_PENDING,
+        status: input.serverStatus,
         sensitiveFlags: input.sensitiveFlags,
-        redactionStatus: input.redactionStatus,
+        redactionStatus: "NOT_STARTED",
       },
     });
   },
 
-  findById(id: string) {
+  findByIdForAdminReview(id: string) {
     return prisma.evidenceFile.findUnique({ where: { id } });
   },
 
   findByIdForUser(id: string, userId: string) {
-    return prisma.evidenceFile.findFirst({ where: { id, userId, status: { not: EvidenceStatus.DELETED } } });
+    return prisma.evidenceFile.findFirst({ where: ownedByUser(id, userId, { status: { not: EvidenceStatus.DELETED } }) });
   },
 
   listForAdmin(input: { status?: EvidenceStatus; reviewId?: string }) {
     return prisma.evidenceFile.findMany({ where: { status: input.status, reviewId: input.reviewId }, orderBy: { uploadedAt: "desc" } });
   },
 
-  updateStatus(id: string, status: EvidenceStatus) {
+  updateStatusForAdminReview(id: string, status: EvidenceStatus) {
     return prisma.evidenceFile.update({ where: { id }, data: { status } });
   },
 
-  markDeleted(id: string) {
-    return prisma.evidenceFile.update({ where: { id }, data: { status: EvidenceStatus.DELETED } });
+  async markDeletedForUser(id: string, userId: string) {
+    const result = await prisma.evidenceFile.updateMany({
+      where: ownedByUser(id, userId, { status: { not: EvidenceStatus.DELETED } }),
+      data: { status: EvidenceStatus.DELETED },
+    });
+    if (result.count !== 1) return null;
+    return prisma.evidenceFile.findFirst({ where: ownedByUser(id, userId) });
   },
 
-  markReviewEvidenceSubmitted(reviewId: string) {
-    return prisma.review.update({ where: { id: reviewId }, data: { evidenceSubmitted: true } });
+  ownedReviewExists(reviewId: string, userId: string) {
+    return prisma.review.count({ where: ownedByUser(reviewId, userId) });
+  },
+
+  markReviewEvidenceSubmittedForUser(reviewId: string, userId: string) {
+    return prisma.review.updateMany({ where: ownedByUser(reviewId, userId), data: { evidenceSubmitted: true } });
   },
 };

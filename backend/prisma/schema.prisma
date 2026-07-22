@@ -8,55 +8,165 @@ datasource db {
 }
 
 model User {
-  id                   String                @id @default(cuid())
-  email                String                @unique
-  name                 String?
-  phone                String?
-  role                 UserRole              @default(USER)
-  status               UserStatus            @default(ACTIVE)
-  emailVerified        Boolean               @default(false)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  complaintDrafts      ComplaintDraft[]
-  corrections          CorrectionRequest[]
-  evidenceFiles        EvidenceFile[]
-  harassmentCases      HarassmentCase[]
-  notifications        Notification[]
-  notificationSettings NotificationSettings?
-  reviews              Review[]
-  reviewReports        ReviewReport[]
+  id                          String                      @id @default(uuid())
+  email                       String
+  normalizedEmail             String                      @unique
+  passwordHash                String?
+  // Retained only to verify legacy hashes. New passwords encode their salt in passwordHash.
+  passwordSalt                String?
+  passwordUpdatedAt           DateTime?
+  passwordChangedAt           DateTime?
+  name                        String?
+  phone                       String?
+  role                        UserRole                    @default(USER)
+  status                      UserStatus                  @default(PENDING_VERIFICATION)
+  emailVerified               Boolean                     @default(false)
+  emailVerifiedAt             DateTime?
+  sessionVersion              Int                         @default(1)
+  failedLoginCount            Int                         @default(0)
+  lockedUntil                 DateTime?
+  createdAt                   DateTime                    @default(now())
+  updatedAt                   DateTime                    @updatedAt
+  complaintDrafts             ComplaintDraft[]
+  complaints                  Complaint[]
+  complaintIncidents          ComplaintIncident[]
+  complaintSubjects           ComplaintSubject[]
+  complaintEvidence           ComplaintEvidence[]
+  complaintDestinations       ComplaintDestination[]
+  complaintStatusHistoryOwned ComplaintStatusHistory[]    @relation("ComplaintStatusHistoryOwner")
+  complaintSubmissions        ComplaintSubmissionRecord[]
+  complaintStatusHistory      ComplaintStatusHistory[]    @relation("ComplaintStatusChangedBy")
+  publicExperienceReports     PublicExperienceReport[]
+  redactedPublicReports       RedactedPublicReport[]      @relation("RedactedPublicReportOwner")
+  reviewedPublicReports       RedactedPublicReport[]      @relation("RedactedPublicReportReviewedBy")
+  createdPublicProfiles       PublicEntityProfile[]       @relation("PublicEntityProfileCreatedBy")
+  safetyAssessments           SafetyAssessment[]          @relation("SafetyAssessmentAssessedBy")
+  corrections                 CorrectionRequest[]
+  evidenceFiles               EvidenceFile[]
+  harassmentCases             HarassmentCase[]
+  createdBusinesses           BusinessAccount[]           @relation("BusinessAccountCreatedBy")
+  memberships                 BusinessMembership[]        @relation("BusinessMembershipUser")
+  grantedMemberships          BusinessMembership[]        @relation("BusinessMembershipGrantedBy")
+  submittedRegistrations      BusinessRegistration[]      @relation("BusinessRegistrationSubmittedBy")
+  submittedClaims             ProfileClaim[]              @relation("ProfileClaimSubmittedBy")
+  uploadedDocuments           VerificationDocument[]      @relation("VerificationDocumentSubmittedBy")
+  verificationReviews         VerificationReview[]        @relation("VerificationReviewAssignedTo")
+  verificationDecisions       VerificationDecision[]      @relation("VerificationDecisionReviewer")
+  informationRequests         InformationRequest[]        @relation("InformationRequestRequestedBy")
+  informationResponses        InformationRequest[]        @relation("InformationRequestRespondedBy")
+  officialResponses           OfficialBusinessResponse[]  @relation("OfficialBusinessResponseSubmittedBy")
+  profileCorrections          ProfileCorrectionRequest[]  @relation("ProfileCorrectionSubmittedBy")
+  sentEmailVerifications      EmailVerification[]         @relation("EmailVerificationUser")
+  sessions                    Session[]
+  verificationTokens          EmailVerificationToken[]
+  resetTokens                 PasswordResetToken[]
+  domainVerifications         DomainVerification[]        @relation("DomainVerificationRequestedBy")
+  notifications               Notification[]
+  notificationSettings        NotificationSettings?
+  reviews                     Review[]
+  reviewReports               ReviewReport[]
+  auditLogs                   AuditLog[]                  @relation("AuditLogActor")
+  createdRegulatoryActions    RegulatoryAction[]          @relation("RegulatoryActionCreatedBy")
+  verifiedRegulatoryActions   RegulatoryAction[]          @relation("RegulatoryActionVerifiedBy")
+}
+
+model Session {
+  id                String    @id @default(uuid())
+  userId            String
+  tokenHash         String    @unique
+  sessionVersion    Int
+  expiresAt         DateTime
+  lastSeenAt        DateTime  @default(now())
+  reauthenticatedAt DateTime?
+  createdAt         DateTime  @default(now())
+  revokedAt         DateTime?
+  ipHash            String?
+  userAgent         String?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([userId, revokedAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model LoanApp {
-  id                 String             @id @default(cuid())
-  slug               String             @unique
-  name               String
-  logoUrl            String?
-  packageName        String?
-  developerName      String?
-  companyName        String?
-  websiteUrl         String?
-  playStoreUrl       String?
-  appStoreUrl        String?
-  claimedNbfcPartner String?
-  status             ProfileStatus      @default(UNDER_REVIEW)
-  verificationStatus VerificationStatus @default(UNDER_VERIFICATION)
-  claimStatus        ClaimStatus        @default(UNCLAIMED)
-  trustScore         Int                @default(0)
-  riskLevel          RiskLevel          @default(INSUFFICIENT_DATA)
-  averageRating      Float              @default(0)
-  reviewCount        Int                @default(0)
-  grievanceEmail     String?
-  supportEmail       String?
-  supportPhone       String?
-  registeredAddress  String?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  complaintDrafts    ComplaintDraft[]
-  complaintSummaries ComplaintSummary[]
-  evidenceFiles      EvidenceFile[]
-  harassmentCases    HarassmentCase[]
-  reviews            Review[]
+  id                        String                 @id @default(cuid())
+  slug                      String                 @unique
+  name                      String
+  logoUrl                   String?
+  packageName               String?
+  developerName             String?
+  companyName               String?
+  legalEntityName           String?
+  businessType              String?
+  websiteUrl                String?
+  playStoreUrl              String?
+  appStoreUrl               String?
+  claimedNbfcPartner        String?
+  associatedRegulatedEntity String?
+  rbiRegistrationNumber     String?
+  rbiRegistrationVerifiedAt DateTime?
+  rbiRegistrationSourceUrl  String?
+  interestRateRange         String?
+  processingFees            String?
+  latePaymentCharges        String?
+  loanTenure                String?
+  privacyDisclosure         String?
+  contactAccessDisclosure   String?
+  recoveryPracticeInfo      String?
+  knownComplaintCategories  String[]               @default([])
+  publicWarningLabels       String[]               @default([])
+  dataSource                String?
+  lastReviewedAt            DateTime?
+  status                    ProfileStatus          @default(UNDER_REVIEW)
+  verificationStatus        VerificationStatus     @default(UNDER_VERIFICATION)
+  claimStatus               ClaimStatus            @default(UNCLAIMED)
+  trustScore                Int                    @default(0)
+  riskLevel                 RiskLevel              @default(INSUFFICIENT_DATA)
+  averageRating             Float                  @default(0)
+  reviewCount               Int                    @default(0)
+  grievanceEmail            String?
+  supportEmail              String?
+  supportPhone              String?
+  registeredAddress         String?
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  complaintDrafts           ComplaintDraft[]
+  complaintSummaries        ComplaintSummary[]
+  evidenceFiles             EvidenceFile[]
+  harassmentCases           HarassmentCase[]
+  businessProfiles          BusinessProfile[]
+  businessRelationships     BusinessRelationship[]
+  reviews                   Review[]
+  regulatoryActions         RegulatoryAction[]
+  publicEntityProfiles      PublicEntityProfile[]
+  loanAppProfiles           LoanAppProfile[]
 
   @@index([status])
   @@index([riskLevel])
@@ -64,27 +174,539 @@ model LoanApp {
 }
 
 model NbfcCompany {
-  id                    String             @id @default(cuid())
-  slug                  String             @unique
-  name                  String
-  logoUrl               String?
-  officialWebsite       String?
-  supportEmail          String?
-  grievanceEmail        String?
-  supportPhone          String?
-  registeredAddress     String?
-  nbfcRegistrationClaim String?
-  companyDescription    String?
-  status                ProfileStatus      @default(PUBLISHED)
-  verificationStatus    VerificationStatus @default(UNDER_VERIFICATION)
-  claimStatus           ClaimStatus        @default(UNCLAIMED)
-  riskLevel             RiskLevel          @default(INSUFFICIENT_DATA)
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  id                        String                 @id @default(cuid())
+  slug                      String                 @unique
+  name                      String
+  logoUrl                   String?
+  officialWebsite           String?
+  businessType              String?
+  playStoreUrl              String?
+  appStoreUrl               String?
+  supportEmail              String?
+  grievanceEmail            String?
+  grievanceOfficerName      String?
+  supportPhone              String?
+  registeredAddress         String?
+  nbfcRegistrationClaim     String?
+  rbiRegistrationNumber     String?
+  rbiRegistrationVerifiedAt DateTime?
+  rbiRegistrationSourceUrl  String?
+  associatedRegulatedEntity String?
+  interestRateRange         String?
+  processingFees            String?
+  latePaymentCharges        String?
+  loanTenure                String?
+  privacyDisclosure         String?
+  contactAccessDisclosure   String?
+  recoveryPracticeInfo      String?
+  knownComplaintCategories  String[]               @default([])
+  publicWarningLabels       String[]               @default([])
+  dataSource                String?
+  lastReviewedAt            DateTime?
+  companyDescription        String?
+  status                    ProfileStatus          @default(PUBLISHED)
+  verificationStatus        VerificationStatus     @default(UNDER_VERIFICATION)
+  claimStatus               ClaimStatus            @default(UNCLAIMED)
+  riskLevel                 RiskLevel              @default(INSUFFICIENT_DATA)
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  businessProfiles          BusinessProfile[]
+  businessRelationships     BusinessRelationship[]
+  regulatoryActions         RegulatoryAction[]
 
   @@index([status])
   @@index([verificationStatus])
   @@index([riskLevel])
+}
+
+model BusinessAccount {
+  id                    String                     @id @default(cuid())
+  legalName             String
+  displayName           String?
+  slug                  String                     @unique
+  accountType           BusinessAccountType
+  status                BusinessAccountStatus      @default(PENDING_VERIFICATION)
+  version               Int                        @default(1)
+  createdByUserId       String
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  createdBy             User                       @relation("BusinessAccountCreatedBy", fields: [createdByUserId], references: [id])
+  memberships           BusinessMembership[]
+  profiles              BusinessProfile[]
+  registrations         BusinessRegistration[]
+  claims                ProfileClaim[]
+  documents             VerificationDocument[]
+  documentRequirements  DocumentRequirement[]
+  emailVerifications    EmailVerification[]
+  domainVerifications   DomainVerification[]
+  relationships         BusinessRelationship[]
+  verificationReviews   VerificationReview[]
+  verificationDecisions VerificationDecision[]
+  informationRequests   InformationRequest[]
+  officialResponses     OfficialBusinessResponse[]
+  profileCorrections    ProfileCorrectionRequest[]
+  auditLogs             AuditLog[]
+  notifications         Notification[]
+  regulatoryActions     RegulatoryAction[]
+
+  @@index([status])
+  @@index([createdByUserId])
+  @@index([accountType])
+}
+
+model BusinessProfile {
+  id                        String                     @id @default(cuid())
+  businessId                String
+  loanAppId                 String?
+  nbfcCompanyId             String?
+  profileType               BusinessProfileType
+  displayName               String
+  officialWebsite           String?
+  playStoreUrl              String?
+  appStoreUrl               String?
+  supportEmail              String?
+  grievanceEmail            String?
+  grievanceOfficerName      String?
+  supportPhone              String?
+  registeredAddress         String?
+  associatedRegulatedEntity String?
+  rbiRegistrationNumber     String?
+  rbiRegistrationVerifiedAt DateTime?
+  rbiRegistrationSourceUrl  String?
+  interestRateRange         String?
+  processingFees            String?
+  latePaymentCharges        String?
+  loanTenure                String?
+  privacyDisclosure         String?
+  contactAccessDisclosure   String?
+  recoveryPracticeInfo      String?
+  knownComplaintCategories  String[]                   @default([])
+  publicWarningLabels       String[]                   @default([])
+  dataSource                String?
+  lastReviewedAt            DateTime?
+  status                    BusinessProfileStatus      @default(DRAFT)
+  version                   Int                        @default(1)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  business                  BusinessAccount            @relation(fields: [businessId], references: [id])
+  loanApp                   LoanApp?                   @relation(fields: [loanAppId], references: [id])
+  nbfcCompany               NbfcCompany?               @relation(fields: [nbfcCompanyId], references: [id])
+  claims                    ProfileClaim[]
+  registrations             BusinessRegistration[]
+  documents                 VerificationDocument[]
+  documentRequirements      DocumentRequirement[]
+  verificationReviews       VerificationReview[]
+  verificationDecisions     VerificationDecision[]
+  informationRequests       InformationRequest[]
+  officialResponses         OfficialBusinessResponse[]
+  correctionRequests        ProfileCorrectionRequest[]
+  outgoingRelationships     BusinessRelationship[]     @relation("BusinessRelationshipFromProfile")
+  incomingRelationships     BusinessRelationship[]     @relation("BusinessRelationshipToProfile")
+  notifications             Notification[]
+  auditLogs                 AuditLog[]
+  regulatoryActions         RegulatoryAction[]
+
+  @@index([businessId])
+  @@index([loanAppId])
+  @@index([nbfcCompanyId])
+  @@index([status])
+  @@index([profileType])
+}
+
+model RegulatoryAction {
+  id                    String                   @id @default(cuid())
+  loanAppId             String?
+  nbfcCompanyId         String?
+  businessId            String?
+  profileId             String?
+  createdByUserId       String?
+  verifiedByUserId      String?
+  authorityName         String
+  authorityJurisdiction String?                  @default("IN")
+  actionType            RegulatoryActionType
+  severity              RegulatoryActionSeverity @default(MEDIUM)
+  status                RegulatoryActionStatus   @default(ACTIVE)
+  title                 String
+  summary               String?
+  orderNumber           String?
+  sourceUrl             String?
+  sourceDocumentUrl     String?
+  sourcePublishedAt     DateTime?
+  effectiveFrom         DateTime?
+  effectiveUntil        DateTime?
+  verifiedAt            DateTime?
+  notes                 String?
+  version               Int                      @default(1)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  loanApp               LoanApp?                 @relation(fields: [loanAppId], references: [id])
+  nbfcCompany           NbfcCompany?             @relation(fields: [nbfcCompanyId], references: [id])
+  business              BusinessAccount?         @relation(fields: [businessId], references: [id])
+  profile               BusinessProfile?         @relation(fields: [profileId], references: [id])
+  createdBy             User?                    @relation("RegulatoryActionCreatedBy", fields: [createdByUserId], references: [id])
+  verifiedBy            User?                    @relation("RegulatoryActionVerifiedBy", fields: [verifiedByUserId], references: [id])
+
+  @@index([loanAppId, status])
+  @@index([nbfcCompanyId, status])
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([actionType, status])
+  @@index([severity, status])
+  @@index([authorityName])
+  @@index([sourcePublishedAt])
+}
+
+model BusinessMembership {
+  id              String                   @id @default(cuid())
+  businessId      String
+  userId          String
+  role            BusinessMembershipRole
+  status          BusinessMembershipStatus @default(PENDING)
+  version         Int                      @default(1)
+  grantedByUserId String?
+  invitedEmail    String?
+  invitedAt       DateTime?
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  business        BusinessAccount          @relation(fields: [businessId], references: [id])
+  user            User                     @relation("BusinessMembershipUser", fields: [userId], references: [id])
+  grantedBy       User?                    @relation("BusinessMembershipGrantedBy", fields: [grantedByUserId], references: [id])
+
+  @@unique([businessId, userId, role])
+  @@index([businessId, status])
+  @@index([userId, status])
+  @@index([role])
+}
+
+model BusinessRegistration {
+  id                 String                     @id @default(cuid())
+  businessId         String
+  profileId          String?
+  submittedByUserId  String
+  registrationType   BusinessRegistrationType
+  registrationNumber String?
+  issuingAuthority   String?
+  countryCode        String                     @default("IN")
+  status             BusinessRegistrationStatus @default(SUBMITTED)
+  version            Int                        @default(1)
+  submittedAt        DateTime                   @default(now())
+  verifiedAt         DateTime?
+  expiresAt          DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  business           BusinessAccount            @relation(fields: [businessId], references: [id])
+  profile            BusinessProfile?           @relation(fields: [profileId], references: [id])
+  submittedBy        User                       @relation("BusinessRegistrationSubmittedBy", fields: [submittedByUserId], references: [id])
+  documents          VerificationDocument[]
+
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([submittedByUserId])
+  @@index([registrationType, registrationNumber])
+}
+
+model ProfileClaim {
+  id                  String                  @id @default(cuid())
+  businessId          String
+  profileId           String
+  submittedByUserId   String
+  status              ProfileClaimStatus      @default(SUBMITTED)
+  version             Int                     @default(1)
+  claimReason         String?
+  requestedRole       BusinessMembershipRole?
+  reviewedAt          DateTime?
+  approvedAt          DateTime?
+  rejectedAt          DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  business            BusinessAccount         @relation(fields: [businessId], references: [id])
+  profile             BusinessProfile         @relation(fields: [profileId], references: [id])
+  submittedBy         User                    @relation("ProfileClaimSubmittedBy", fields: [submittedByUserId], references: [id])
+  documents           VerificationDocument[]
+  reviews             VerificationReview[]
+  informationRequests InformationRequest[]
+
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([submittedByUserId, status])
+}
+
+model VerificationDocument {
+  id                   String                     @id @default(cuid())
+  businessId           String
+  profileId            String?
+  submittedByUserId    String
+  claimId              String?
+  registrationId       String?
+  requirementId        String?
+  documentType         VerificationDocumentType
+  status               VerificationDocumentStatus @default(UPLOADED)
+  version              Int                        @default(1)
+  storageKey           String
+  maskedFileName       String
+  originalFileNameHash String?
+  mimeType             String
+  fileSizeBytes        Int
+  checksumSha256       String?
+  sensitiveFlags       String[]
+  reviewedAt           DateTime?
+  expiresAt            DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  business             BusinessAccount            @relation(fields: [businessId], references: [id])
+  profile              BusinessProfile?           @relation(fields: [profileId], references: [id])
+  submittedBy          User                       @relation("VerificationDocumentSubmittedBy", fields: [submittedByUserId], references: [id])
+  claim                ProfileClaim?              @relation(fields: [claimId], references: [id])
+  registration         BusinessRegistration?      @relation(fields: [registrationId], references: [id])
+  requirement          DocumentRequirement?       @relation(fields: [requirementId], references: [id])
+  reviews              VerificationReview[]
+
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([submittedByUserId])
+  @@index([claimId])
+  @@index([registrationId])
+  @@index([requirementId])
+}
+
+model DocumentRequirement {
+  id              String                    @id @default(cuid())
+  businessId      String?
+  profileId       String?
+  requirementKey  String
+  title           String
+  description     String?
+  documentType    VerificationDocumentType
+  status          DocumentRequirementStatus @default(ACTIVE)
+  version         Int                       @default(1)
+  requiredForRole BusinessMembershipRole?
+  dueAt           DateTime?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  business        BusinessAccount?          @relation(fields: [businessId], references: [id])
+  profile         BusinessProfile?          @relation(fields: [profileId], references: [id])
+  documents       VerificationDocument[]
+
+  @@unique([businessId, profileId, requirementKey])
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([documentType])
+}
+
+model EmailVerification {
+  id         String                   @id @default(cuid())
+  userId     String?
+  businessId String?
+  email      String
+  tokenHash  String
+  status     EmailVerificationStatus  @default(PENDING)
+  version    Int                      @default(1)
+  purpose    EmailVerificationPurpose @default(USER_EMAIL)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+  user       User?                    @relation("EmailVerificationUser", fields: [userId], references: [id])
+  business   BusinessAccount?         @relation(fields: [businessId], references: [id])
+
+  @@unique([tokenHash])
+  @@index([userId, status])
+  @@index([businessId, status])
+  @@index([email, status])
+}
+
+model DomainVerification {
+  id                    String                   @id @default(cuid())
+  businessId            String
+  requestedByUserId     String
+  domain                String
+  verificationMethod    DomainVerificationMethod
+  verificationValueHash String
+  status                DomainVerificationStatus @default(PENDING)
+  version               Int                      @default(1)
+  attempts              Int                      @default(0)
+  lastCheckedAt         DateTime?
+  verifiedAt            DateTime?
+  expiresAt             DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  business              BusinessAccount          @relation(fields: [businessId], references: [id])
+  requestedBy           User                     @relation("DomainVerificationRequestedBy", fields: [requestedByUserId], references: [id])
+
+  @@unique([businessId, domain])
+  @@index([businessId, status])
+  @@index([requestedByUserId])
+}
+
+model BusinessRelationship {
+  id               String                     @id @default(cuid())
+  businessId       String
+  fromProfileId    String?
+  toProfileId      String?
+  loanAppId        String?
+  nbfcCompanyId    String?
+  relationshipType BusinessRelationshipType
+  status           BusinessRelationshipStatus @default(CLAIMED)
+  version          Int                        @default(1)
+  sourceUrl        String?
+  confidence       VerificationConfidence     @default(LOW)
+  verifiedAt       DateTime?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  business         BusinessAccount            @relation(fields: [businessId], references: [id])
+  fromProfile      BusinessProfile?           @relation("BusinessRelationshipFromProfile", fields: [fromProfileId], references: [id])
+  toProfile        BusinessProfile?           @relation("BusinessRelationshipToProfile", fields: [toProfileId], references: [id])
+  loanApp          LoanApp?                   @relation(fields: [loanAppId], references: [id])
+  nbfcCompany      NbfcCompany?               @relation(fields: [nbfcCompanyId], references: [id])
+  reviews          VerificationReview[]
+
+  @@index([businessId, status])
+  @@index([fromProfileId])
+  @@index([toProfileId])
+  @@index([loanAppId])
+  @@index([nbfcCompanyId])
+  @@index([relationshipType, status])
+}
+
+model VerificationReview {
+  id                  String                     @id @default(cuid())
+  businessId          String
+  profileId           String?
+  claimId             String?
+  documentId          String?
+  relationshipId      String?
+  assignedToUserId    String?
+  status              VerificationReviewStatus   @default(QUEUED)
+  version             Int                        @default(1)
+  priority            VerificationReviewPriority @default(NORMAL)
+  reviewNotes         String?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  business            BusinessAccount            @relation(fields: [businessId], references: [id])
+  profile             BusinessProfile?           @relation(fields: [profileId], references: [id])
+  claim               ProfileClaim?              @relation(fields: [claimId], references: [id])
+  document            VerificationDocument?      @relation(fields: [documentId], references: [id])
+  relationship        BusinessRelationship?      @relation(fields: [relationshipId], references: [id])
+  assignedTo          User?                      @relation("VerificationReviewAssignedTo", fields: [assignedToUserId], references: [id])
+  decisions           VerificationDecision[]
+  informationRequests InformationRequest[]
+
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([claimId])
+  @@index([documentId])
+  @@index([relationshipId])
+  @@index([assignedToUserId, status])
+}
+
+model VerificationDecision {
+  id             String                      @id @default(cuid())
+  reviewId       String
+  businessId     String
+  profileId      String?
+  reviewerUserId String
+  outcome        VerificationDecisionOutcome
+  status         VerificationDecisionStatus  @default(FINAL)
+  version        Int                         @default(1)
+  reason         String
+  internalNotes  String?
+  effectiveAt    DateTime                    @default(now())
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  review         VerificationReview          @relation(fields: [reviewId], references: [id])
+  business       BusinessAccount             @relation(fields: [businessId], references: [id])
+  profile        BusinessProfile?            @relation(fields: [profileId], references: [id])
+  reviewer       User                        @relation("VerificationDecisionReviewer", fields: [reviewerUserId], references: [id])
+
+  @@index([reviewId])
+  @@index([businessId, outcome])
+  @@index([profileId, outcome])
+  @@index([reviewerUserId])
+}
+
+model InformationRequest {
+  id                String                   @id @default(cuid())
+  businessId        String
+  profileId         String?
+  claimId           String?
+  reviewId          String?
+  requestedByUserId String
+  respondedByUserId String?
+  status            InformationRequestStatus @default(OPEN)
+  version           Int                      @default(1)
+  subject           String
+  message           String
+  responseText      String?
+  dueAt             DateTime?
+  respondedAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  business          BusinessAccount          @relation(fields: [businessId], references: [id])
+  profile           BusinessProfile?         @relation(fields: [profileId], references: [id])
+  claim             ProfileClaim?            @relation(fields: [claimId], references: [id])
+  review            VerificationReview?      @relation(fields: [reviewId], references: [id])
+  requestedBy       User                     @relation("InformationRequestRequestedBy", fields: [requestedByUserId], references: [id])
+  respondedBy       User?                    @relation("InformationRequestRespondedBy", fields: [respondedByUserId], references: [id])
+
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([claimId])
+  @@index([reviewId])
+  @@index([requestedByUserId])
+  @@index([respondedByUserId])
+}
+
+model OfficialBusinessResponse {
+  id                String                         @id @default(cuid())
+  businessId        String
+  profileId         String?
+  submittedByUserId String
+  publicItemType    String
+  publicItemId      String
+  responseBody      String
+  status            OfficialBusinessResponseStatus @default(SUBMITTED)
+  version           Int                            @default(1)
+  publishedAt       DateTime?
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
+  business          BusinessAccount                @relation(fields: [businessId], references: [id])
+  profile           BusinessProfile?               @relation(fields: [profileId], references: [id])
+  submittedBy       User                           @relation("OfficialBusinessResponseSubmittedBy", fields: [submittedByUserId], references: [id])
+
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([submittedByUserId])
+  @@index([publicItemType, publicItemId])
+}
+
+model ProfileCorrectionRequest {
+  id                String                         @id @default(cuid())
+  businessId        String
+  profileId         String
+  submittedByUserId String
+  fieldKey          String
+  currentValue      String?
+  proposedValue     String?
+  explanation       String
+  sourceUrl         String?
+  status            ProfileCorrectionRequestStatus @default(SUBMITTED)
+  version           Int                            @default(1)
+  reviewedAt        DateTime?
+  appliedAt         DateTime?
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
+  business          BusinessAccount                @relation(fields: [businessId], references: [id])
+  profile           BusinessProfile                @relation(fields: [profileId], references: [id])
+  submittedBy       User                           @relation("ProfileCorrectionSubmittedBy", fields: [submittedByUserId], references: [id])
+
+  @@index([businessId, status])
+  @@index([profileId, status])
+  @@index([submittedByUserId, status])
+  @@index([fieldKey])
 }
 
 model HarassmentCase {
@@ -161,6 +783,418 @@ model ExternalComplaint {
   @@index([channel])
 }
 
+model PublicEntityProfile {
+  id                    String                        @id @default(cuid())
+  loanAppId             String?
+  slug                  String                        @unique
+  publicName            String
+  legalEntityName       String?
+  businessType          PublicEntityType
+  websiteUrl            String?
+  officialDomains       String[]                      @default([])
+  appStoreLinks         Json?
+  customerSupport       Json?
+  rbiRegistrationNumber String?
+  rbiRegistrationStatus VerificationStatus            @default(UNVERIFIED)
+  rbiRegistrationSource String?
+  dataSource            String
+  status                PublicEntityProfileStatus     @default(DRAFT)
+  verificationStatus    VerificationStatus            @default(UNVERIFIED)
+  lastReviewedAt        DateTime?
+  createdByUserId       String?
+  version               Int                           @default(1)
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+  loanApp               LoanApp?                      @relation(fields: [loanAppId], references: [id])
+  createdBy             User?                         @relation("PublicEntityProfileCreatedBy", fields: [createdByUserId], references: [id])
+  loanAppProfiles       LoanAppProfile[]
+  regulatedBy           RegulatedEntityRelationship[] @relation("RegulatedEntityRelationshipSource")
+  regulatedEntities     RegulatedEntityRelationship[] @relation("RegulatedEntityRelationshipRegulated")
+  interestAndFees       InterestAndFeeRecord[]
+  grievanceContacts     GrievanceContact[]
+  safetyAssessments     SafetyAssessment[]
+  complaints            Complaint[]
+  complaintDestinations ComplaintDestination[]
+  publicReports         PublicExperienceReport[]
+  redactedReports       RedactedPublicReport[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+
+  @@index([loanAppId])
+  @@index([businessType])
+  @@index([status])
+  @@index([verificationStatus])
+  @@index([createdByUserId])
+  @@index([lastReviewedAt])
+}
+
+model LoanAppProfile {
+  id                      String                   @id @default(cuid())
+  publicEntityProfileId   String
+  loanAppId               String?
+  packageName             String?
+  developerName           String?
+  playStoreUrl            String?
+  appStoreUrl             String?
+  appStoreAvailability    String[]                 @default([])
+  privacyDisclosure       String?
+  contactAccessDisclosure String?
+  recoveryPracticeInfo    String?
+  publicWarningLabels     String[]                 @default([])
+  version                 Int                      @default(1)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  publicEntityProfile     PublicEntityProfile      @relation(fields: [publicEntityProfileId], references: [id])
+  loanApp                 LoanApp?                 @relation(fields: [loanAppId], references: [id])
+  complaints              Complaint[]
+  publicReports           PublicExperienceReport[]
+
+  @@index([publicEntityProfileId])
+  @@index([loanAppId])
+  @@index([packageName])
+}
+
+model RegulatedEntityRelationship {
+  id                       String                          @id @default(cuid())
+  sourceProfileId          String
+  regulatedEntityProfileId String
+  relationshipType         RegulatedEntityRelationshipType
+  status                   BusinessRelationshipStatus      @default(CLAIMED)
+  confidence               VerificationConfidence          @default(LOW)
+  evidenceSummary          String?
+  sourceUrl                String?
+  verifiedAt               DateTime?
+  version                  Int                             @default(1)
+  createdAt                DateTime                        @default(now())
+  updatedAt                DateTime                        @updatedAt
+  sourceProfile            PublicEntityProfile             @relation("RegulatedEntityRelationshipSource", fields: [sourceProfileId], references: [id])
+  regulatedEntityProfile   PublicEntityProfile             @relation("RegulatedEntityRelationshipRegulated", fields: [regulatedEntityProfileId], references: [id])
+
+  @@unique([sourceProfileId, regulatedEntityProfileId, relationshipType])
+  @@index([sourceProfileId])
+  @@index([regulatedEntityProfileId])
+  @@index([status])
+}
+
+model InterestAndFeeRecord {
+  id                    String              @id @default(cuid())
+  publicEntityProfileId String
+  interestRateMin       Decimal?
+  interestRateMax       Decimal?
+  interestRateUnit      InterestRateUnit?
+  processingFeeText     String?
+  processingFeeMin      Decimal?
+  processingFeeMax      Decimal?
+  latePaymentChargeText String?
+  loanTenureMinDays     Int?
+  loanTenureMaxDays     Int?
+  sourceUrl             String?
+  dataSource            String
+  verificationStatus    VerificationStatus  @default(UNVERIFIED)
+  effectiveFrom         DateTime?
+  effectiveTo           DateTime?
+  version               Int                 @default(1)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  publicEntityProfile   PublicEntityProfile @relation(fields: [publicEntityProfileId], references: [id])
+
+  @@index([publicEntityProfileId])
+  @@index([verificationStatus])
+  @@index([interestRateMin, interestRateMax])
+}
+
+model GrievanceContact {
+  id                    String               @id @default(cuid())
+  publicEntityProfileId String
+  contactType           GrievanceContactType
+  name                  String?
+  designation           String?
+  email                 String?
+  phone                 String?
+  address               String?
+  escalationLevel       Int                  @default(1)
+  officialUrl           String?
+  sourceUrl             String?
+  verificationStatus    VerificationStatus   @default(UNVERIFIED)
+  version               Int                  @default(1)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  publicEntityProfile   PublicEntityProfile  @relation(fields: [publicEntityProfileId], references: [id])
+
+  @@index([publicEntityProfileId])
+  @@index([contactType])
+  @@index([verificationStatus])
+}
+
+model SafetyAssessment {
+  id                    String                 @id @default(cuid())
+  publicEntityProfileId String
+  assessedByUserId      String?
+  status                SafetyAssessmentStatus @default(DRAFT)
+  score                 Int
+  level                 RiskLevel              @default(INSUFFICIENT_DATA)
+  factors               Json
+  explanation           String?
+  dataSnapshot          Json?
+  publishedAt           DateTime?
+  version               Int                    @default(1)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  publicEntityProfile   PublicEntityProfile    @relation(fields: [publicEntityProfileId], references: [id])
+  assessedBy            User?                  @relation("SafetyAssessmentAssessedBy", fields: [assessedByUserId], references: [id])
+
+  @@index([publicEntityProfileId])
+  @@index([assessedByUserId])
+  @@index([status])
+  @@index([level])
+}
+
+model Complaint {
+  id                    String                      @id @default(cuid())
+  userId                String
+  publicEntityProfileId String?
+  loanAppProfileId      String?
+  title                 String
+  summary               String?
+  status                ComplaintStatus             @default(DRAFT)
+  severity              ComplaintSeverity           @default(NORMAL)
+  privacyMode           ComplaintPrivacyMode        @default(PRIVATE)
+  currentVersion        Int                         @default(1)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  user                  User                        @relation(fields: [userId], references: [id])
+  publicEntityProfile   PublicEntityProfile?        @relation(fields: [publicEntityProfileId], references: [id])
+  loanAppProfile        LoanAppProfile?             @relation(fields: [loanAppProfileId], references: [id])
+  incidents             ComplaintIncident[]
+  subjects              ComplaintSubject[]
+  evidence              ComplaintEvidence[]
+  drafts                ComplaintDraft[]
+  destinations          ComplaintDestination[]
+  submissions           ComplaintSubmissionRecord[]
+  statusHistory         ComplaintStatusHistory[]
+  publicReports         PublicExperienceReport[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+
+  @@index([userId])
+  @@index([publicEntityProfileId])
+  @@index([loanAppProfileId])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model ComplaintIncident {
+  id                       String                 @id @default(cuid())
+  complaintId              String
+  userId                   String
+  occurredAt               DateTime?
+  approximateTime          String?
+  communicationMethod      String?
+  phoneOrAccountUsed       String?
+  recoveryAgentIdentifiers String?
+  whatWasSaidOrDone        String
+  peopleContacted          String?
+  detailsDisclosed         Boolean?
+  paymentAlreadyMade       ComplaintPaymentStatus @default(NOT_SURE)
+  loanDueDate              DateTime?
+  amountDue                Decimal?
+  currentPaymentStatus     String?
+  previousLenderContact    String?
+  immediateSafetyConcerns  String?
+  version                  Int                    @default(1)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  complaint                Complaint              @relation(fields: [complaintId], references: [id])
+  user                     User                   @relation(fields: [userId], references: [id])
+
+  @@index([complaintId])
+  @@index([userId])
+  @@index([occurredAt])
+}
+
+model ComplaintSubject {
+  id          String                   @id @default(cuid())
+  complaintId String
+  userId      String
+  category    ComplaintSubjectCategory
+  label       String
+  description String?
+  version     Int                      @default(1)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  complaint   Complaint                @relation(fields: [complaintId], references: [id])
+  user        User                     @relation(fields: [userId], references: [id])
+
+  @@unique([complaintId, category])
+  @@index([userId])
+  @@index([category])
+}
+
+model ComplaintEvidence {
+  id            String                   @id @default(cuid())
+  complaintId   String
+  userId        String
+  evidenceType  ComplaintEvidenceType
+  title         String
+  description   String?
+  keptByUser    Boolean                  @default(true)
+  locationHint  String?
+  capturedAt    DateTime?
+  status        ComplaintEvidenceStatus  @default(LISTED)
+  version       Int                      @default(1)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  complaint     Complaint                @relation(fields: [complaintId], references: [id])
+  user          User                     @relation(fields: [userId], references: [id])
+  statusHistory ComplaintStatusHistory[]
+
+  @@index([complaintId])
+  @@index([userId])
+  @@index([evidenceType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ComplaintDestination {
+  id                    String                      @id @default(cuid())
+  complaintId           String
+  userId                String
+  publicEntityProfileId String?
+  channel               ComplaintDestinationChannel
+  name                  String
+  officialUrl           String?
+  email                 String?
+  phone                 String?
+  address               String?
+  isRecommended         Boolean                     @default(false)
+  recommendationReason  String?
+  status                ComplaintDestinationStatus  @default(SUGGESTED)
+  version               Int                         @default(1)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  complaint             Complaint                   @relation(fields: [complaintId], references: [id])
+  user                  User                        @relation(fields: [userId], references: [id])
+  publicEntityProfile   PublicEntityProfile?        @relation(fields: [publicEntityProfileId], references: [id])
+  drafts                ComplaintDraft[]
+  submissions           ComplaintSubmissionRecord[]
+
+  @@index([complaintId])
+  @@index([userId])
+  @@index([publicEntityProfileId])
+  @@index([channel])
+  @@index([status])
+}
+
+model ComplaintSubmissionRecord {
+  id                        String                    @id @default(cuid())
+  complaintId               String
+  destinationId             String
+  userId                    String
+  status                    ComplaintSubmissionStatus @default(NOT_SUBMITTED)
+  externalReference         String?
+  submittedAt               DateTime?
+  acknowledgementReceivedAt DateTime?
+  responseDueAt             DateTime?
+  responseSummary           String?
+  attachmentManifest        Json?
+  userAuthorizedSubmission  Boolean                   @default(false)
+  version                   Int                       @default(1)
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  complaint                 Complaint                 @relation(fields: [complaintId], references: [id])
+  destination               ComplaintDestination      @relation(fields: [destinationId], references: [id])
+  user                      User                      @relation(fields: [userId], references: [id])
+
+  @@index([complaintId])
+  @@index([destinationId])
+  @@index([userId])
+  @@index([status])
+  @@index([externalReference])
+}
+
+model ComplaintStatusHistory {
+  id              String                     @id @default(cuid())
+  complaintId     String
+  userId          String
+  evidenceId      String?
+  changeType      ComplaintHistoryChangeType
+  fromStatus      String?
+  toStatus        String
+  reason          String?
+  metadata        Json?
+  changedByUserId String?
+  createdAt       DateTime                   @default(now())
+  complaint       Complaint                  @relation(fields: [complaintId], references: [id])
+  evidence        ComplaintEvidence?         @relation(fields: [evidenceId], references: [id])
+  user            User                       @relation("ComplaintStatusHistoryOwner", fields: [userId], references: [id])
+  changedBy       User?                      @relation("ComplaintStatusChangedBy", fields: [changedByUserId], references: [id])
+
+  @@index([complaintId])
+  @@index([userId])
+  @@index([evidenceId])
+  @@index([changeType])
+  @@index([createdAt])
+}
+
+model PublicExperienceReport {
+  id                    String                @id @default(cuid())
+  userId                String
+  complaintId           String?
+  publicEntityProfileId String
+  loanAppProfileId      String?
+  displayName           String?
+  rating                Int?
+  title                 String
+  privateBody           String
+  publicSummary         String?
+  incidentDate          DateTime?
+  categories            String[]              @default([])
+  consentToPublish      Boolean               @default(false)
+  status                ModerationStatus      @default(PENDING)
+  version               Int                   @default(1)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  user                  User                  @relation(fields: [userId], references: [id])
+  complaint             Complaint?            @relation(fields: [complaintId], references: [id])
+  publicEntityProfile   PublicEntityProfile   @relation(fields: [publicEntityProfileId], references: [id])
+  loanAppProfile        LoanAppProfile?       @relation(fields: [loanAppProfileId], references: [id])
+  redactedReport        RedactedPublicReport?
+
+  @@index([userId])
+  @@index([complaintId])
+  @@index([publicEntityProfileId])
+  @@index([loanAppProfileId])
+  @@index([status])
+}
+
+model RedactedPublicReport {
+  id                       String                 @id @default(cuid())
+  publicExperienceReportId String                 @unique
+  userId                   String
+  publicEntityProfileId    String
+  redactedTitle            String
+  redactedBody             String
+  redactionNotes           String?
+  publicDisplayName        String?
+  status                   RedactedReportStatus   @default(DRAFT)
+  publishedAt              DateTime?
+  reviewedByUserId         String?
+  version                  Int                    @default(1)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  publicExperienceReport   PublicExperienceReport @relation(fields: [publicExperienceReportId], references: [id])
+  publicEntityProfile      PublicEntityProfile    @relation(fields: [publicEntityProfileId], references: [id])
+  user                     User                   @relation("RedactedPublicReportOwner", fields: [userId], references: [id])
+  reviewedBy               User?                  @relation("RedactedPublicReportReviewedBy", fields: [reviewedByUserId], references: [id])
+
+  @@index([userId])
+  @@index([publicEntityProfileId])
+  @@index([reviewedByUserId])
+  @@index([status])
+  @@index([publishedAt])
+}
+
 model ComplaintTemplate {
   id          String                    @id @default(cuid())
   key         String                    @unique
@@ -175,27 +1209,39 @@ model ComplaintTemplate {
 }
 
 model ComplaintDraft {
-  id               String               @id @default(cuid())
+  id               String                       @id @default(cuid())
   userId           String
+  complaintId      String?
+  destinationId    String?
   templateId       String?
   loanAppId        String?
   title            String
   templateKey      String
   outputType       ComplaintOutputType
-  status           ComplaintDraftStatus @default(DRAFT)
+  destinationType  ComplaintDestinationChannel?
+  status           ComplaintDraftStatus         @default(DRAFT)
+  version          Int                          @default(1)
   formData         Json
   generatedSubject String?
   generatedBody    String
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  loanApp          LoanApp?             @relation(fields: [loanAppId], references: [id])
-  template         ComplaintTemplate?   @relation(fields: [templateId], references: [id])
-  user             User                 @relation(fields: [userId], references: [id])
+  requestedAction  String?
+  declarationText  String?
+  generatedAt      DateTime                     @default(now())
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+  complaint        Complaint?                   @relation(fields: [complaintId], references: [id])
+  destination      ComplaintDestination?        @relation(fields: [destinationId], references: [id])
+  loanApp          LoanApp?                     @relation(fields: [loanAppId], references: [id])
+  template         ComplaintTemplate?           @relation(fields: [templateId], references: [id])
+  user             User                         @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([complaintId])
+  @@index([destinationId])
   @@index([templateId])
   @@index([loanAppId])
   @@index([status])
+  @@index([destinationType])
 }
 
 model Review {
@@ -322,18 +1368,32 @@ model CorrectionRequest {
 }
 
 model Notification {
-  id         String               @id @default(cuid())
-  userId     String
-  type       String
-  title      String
-  message    String
-  priority   NotificationPriority @default(NORMAL)
-  read       Boolean              @default(false)
-  relatedUrl String?
-  createdAt  DateTime             @default(now())
-  user       User                 @relation(fields: [userId], references: [id])
+  id                    String               @id @default(cuid())
+  userId                String
+  businessId            String?
+  profileId             String?
+  complaintId           String?
+  publicEntityProfileId String?
+  type                  String
+  title                 String
+  message               String
+  priority              NotificationPriority @default(NORMAL)
+  read                  Boolean              @default(false)
+  relatedUrl            String?
+  version               Int                  @default(1)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  user                  User                 @relation(fields: [userId], references: [id])
+  business              BusinessAccount?     @relation(fields: [businessId], references: [id])
+  profile               BusinessProfile?     @relation(fields: [profileId], references: [id])
+  complaint             Complaint?           @relation(fields: [complaintId], references: [id])
+  publicEntityProfile   PublicEntityProfile? @relation(fields: [publicEntityProfileId], references: [id])
 
   @@index([userId])
+  @@index([businessId])
+  @@index([profileId])
+  @@index([complaintId])
+  @@index([publicEntityProfileId])
   @@index([read])
   @@index([priority])
 }
@@ -355,17 +1415,31 @@ model NotificationSettings {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  actorId    String?
-  action     String
-  targetType String
-  targetId   String?
-  beforeJson Json?
-  afterJson  Json?
-  reason     String?
-  createdAt  DateTime @default(now())
+  id                    String               @id @default(cuid())
+  actorId               String?
+  businessId            String?
+  profileId             String?
+  complaintId           String?
+  publicEntityProfileId String?
+  action                String
+  targetType            String
+  targetId              String?
+  beforeJson            Json?
+  afterJson             Json?
+  reason                String?
+  version               Int                  @default(1)
+  createdAt             DateTime             @default(now())
+  actor                 User?                @relation("AuditLogActor", fields: [actorId], references: [id])
+  business              BusinessAccount?     @relation(fields: [businessId], references: [id])
+  profile               BusinessProfile?     @relation(fields: [profileId], references: [id])
+  complaint             Complaint?           @relation(fields: [complaintId], references: [id])
+  publicEntityProfile   PublicEntityProfile? @relation(fields: [publicEntityProfileId], references: [id])
 
   @@index([actorId])
+  @@index([businessId])
+  @@index([profileId])
+  @@index([complaintId])
+  @@index([publicEntityProfileId])
   @@index([targetType, targetId])
   @@index([createdAt])
 }
@@ -404,10 +1478,241 @@ enum UserRole {
 }
 
 enum UserStatus {
+  PENDING_VERIFICATION
   ACTIVE
+  SUSPENDED
+  DISABLED
+  // Legacy values remain readable during the production data migration.
   PENDING
+  REVOKED
+}
+
+enum BusinessAccountType {
+  BANK
+  NBFC
+  LOAN_APP_OPERATOR
+  SERVICE_PROVIDER
+  OTHER
+}
+
+enum BusinessAccountStatus {
+  PENDING_VERIFICATION
+  ACTIVE
   SUSPENDED
   REVOKED
+  ARCHIVED
+}
+
+enum BusinessProfileType {
+  BANK
+  NBFC
+  LOAN_APP
+  DEVELOPER
+  GRIEVANCE_OFFICE
+  OTHER
+}
+
+enum BusinessProfileStatus {
+  DRAFT
+  CLAIM_PENDING
+  UNDER_VERIFICATION
+  VERIFIED
+  PARTIALLY_VERIFIED
+  DISPUTED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum BusinessMembershipRole {
+  OWNER
+  AUTHORIZED_REPRESENTATIVE
+  COMPLIANCE_OFFICER
+  GRIEVANCE_OFFICER
+  PROFILE_MANAGER
+  VIEWER
+}
+
+enum BusinessMembershipStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
+
+enum BusinessRegistrationType {
+  RBI_REGISTRATION
+  CIN
+  GSTIN
+  PAN
+  BANK_LICENSE
+  BOARD_AUTHORIZATION
+  GRIEVANCE_OFFICER_AUTHORIZATION
+  OTHER
+}
+
+enum BusinessRegistrationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  EXPIRED
+  SUPERSEDED
+}
+
+enum ProfileClaimStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  INFORMATION_REQUESTED
+  APPROVED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum VerificationDocumentType {
+  RBI_CERTIFICATE
+  COMPANY_REGISTRATION
+  BOARD_RESOLUTION
+  AUTHORIZATION_LETTER
+  DOMAIN_OWNERSHIP
+  GRIEVANCE_OFFICER_PROOF
+  GOVERNMENT_ID
+  OTHER
+}
+
+enum VerificationDocumentStatus {
+  UPLOADED
+  SCAN_PENDING
+  ACCEPTED_FOR_REVIEW
+  INFORMATION_REQUESTED
+  VERIFIED
+  REJECTED
+  EXPIRED
+  DELETED
+}
+
+enum DocumentRequirementStatus {
+  ACTIVE
+  SATISFIED
+  WAIVED
+  EXPIRED
+}
+
+enum EmailVerificationPurpose {
+  USER_EMAIL
+  BUSINESS_CONTACT
+  GRIEVANCE_CONTACT
+  REPRESENTATIVE_INVITE
+}
+
+enum EmailVerificationStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  REVOKED
+}
+
+enum DomainVerificationMethod {
+  DNS_TXT
+  HTML_FILE
+  META_TAG
+  EMAIL_TO_DOMAIN
+}
+
+enum DomainVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+  REVOKED
+}
+
+enum BusinessRelationshipType {
+  OWNS
+  OPERATES
+  DEVELOPS
+  LENDS_FOR
+  CLAIMED_NBFC_PARTNER
+  GRIEVANCE_CONTACT_FOR
+  SUPPORT_PROVIDER_FOR
+  DOMAIN_MATCH
+  OTHER
+}
+
+enum BusinessRelationshipStatus {
+  CLAIMED
+  UNDER_VERIFICATION
+  VERIFIED
+  PARTIALLY_VERIFIED
+  DISPUTED
+  REJECTED
+  ARCHIVED
+}
+
+enum VerificationConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum VerificationReviewStatus {
+  QUEUED
+  IN_REVIEW
+  INFORMATION_REQUESTED
+  APPROVED
+  REJECTED
+  ESCALATED
+  CLOSED
+}
+
+enum VerificationReviewPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum VerificationDecisionOutcome {
+  APPROVE
+  PARTIALLY_APPROVE
+  REJECT
+  REQUEST_INFORMATION
+  ESCALATE
+  REVOKE
+}
+
+enum VerificationDecisionStatus {
+  DRAFT
+  FINAL
+  SUPERSEDED
+}
+
+enum InformationRequestStatus {
+  OPEN
+  RESPONDED
+  OVERDUE
+  CLOSED
+  CANCELLED
+}
+
+enum OfficialBusinessResponseStatus {
+  SUBMITTED
+  UNDER_MODERATION
+  PUBLISHED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ProfileCorrectionRequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  INFORMATION_REQUESTED
+  ACCEPTED
+  PARTIALLY_ACCEPTED
+  REJECTED
+  APPLIED
+  WITHDRAWN
 }
 
 enum HarassmentCaseType {
@@ -511,6 +1816,195 @@ enum ComplaintDraftStatus {
   DELETED
 }
 
+enum PublicEntityType {
+  LOAN_APP
+  NBFC
+  BANK
+  DIGITAL_LENDER
+  RECOVERY_AGENCY
+  PAYMENT_APP
+  UNKNOWN
+  OTHER
+}
+
+enum PublicEntityProfileStatus {
+  DRAFT
+  PUBLISHED
+  UNDER_REVIEW
+  DISPUTED
+  HIDDEN
+  ARCHIVED
+}
+
+enum RegulatedEntityRelationshipType {
+  LENDING_PARTNER
+  OWNED_BY
+  OPERATED_BY
+  DEVELOPED_BY
+  COLLECTION_AGENT_FOR
+  GRIEVANCE_CONTACT_FOR
+  PAYMENT_PROCESSOR_FOR
+  CLAIMED_RELATIONSHIP
+  OTHER
+}
+
+enum InterestRateUnit {
+  DAILY
+  MONTHLY
+  ANNUAL
+  FLAT
+  UNKNOWN
+}
+
+enum GrievanceContactType {
+  CUSTOMER_SUPPORT
+  GRIEVANCE_OFFICER
+  PRINCIPAL_NODAL_OFFICER
+  NODAL_OFFICER
+  COMPLIANCE
+  CYBER_FRAUD
+  OTHER
+}
+
+enum SafetyAssessmentStatus {
+  DRAFT
+  PUBLISHED
+  NEEDS_REVIEW
+  SUPERSEDED
+  ARCHIVED
+}
+
+enum ComplaintStatus {
+  DRAFT
+  READY_TO_FILE
+  FILED
+  ACKNOWLEDGED
+  WAITING_FOR_RESPONSE
+  RESPONSE_RECEIVED
+  ACTION_NEEDED
+  RESOLVED
+  CLOSED
+  ARCHIVED
+}
+
+enum ComplaintSeverity {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ComplaintPrivacyMode {
+  PRIVATE
+  REDACTED_PUBLIC_ALLOWED
+  PUBLIC_AFTER_REVIEW
+}
+
+enum ComplaintPaymentStatus {
+  YES
+  NO
+  PARTLY
+  NOT_SURE
+}
+
+enum ComplaintSubjectCategory {
+  ABUSIVE_LANGUAGE
+  THREATS
+  REPEATED_CALLS
+  CONTACTING_RELATIVES_OR_FRIENDS
+  CONTACTING_EMPLOYER_OR_COLLEAGUES
+  DISCLOSURE_OF_LOAN_INFORMATION
+  UNAUTHORIZED_CONTACT_LIST_ACCESS
+  HARASSMENT_ON_DUE_DATE
+  HARASSMENT_AFTER_PAYMENT
+  HIDDEN_CHARGES
+  EXCESSIVE_INTEREST
+  MISLEADING_LOAN_TERMS
+  FAKE_LEGAL_THREATS
+  FAILURE_TO_PROVIDE_GRIEVANCE_SUPPORT
+  APP_OR_LENDER_IDENTITY_UNCLEAR
+  IMPERSONATION
+  FRAUD
+  OTHER
+}
+
+enum ComplaintEvidenceType {
+  SCREENSHOT
+  CALL_RECORDING
+  CALL_LOG
+  SMS_OR_CHAT
+  EMAIL
+  PAYMENT_RECEIPT
+  BANK_STATEMENT
+  URL
+  PHONE_NUMBER
+  DOCUMENT
+  OTHER
+}
+
+enum ComplaintEvidenceStatus {
+  LISTED
+  USER_CONFIRMED_AVAILABLE
+  SUBMITTED_DIRECTLY_BY_USER
+  NO_LONGER_AVAILABLE
+  REMOVED_FROM_CHECKLIST
+}
+
+enum ComplaintDestinationChannel {
+  LENDER_GRIEVANCE_OFFICER
+  PRINCIPAL_NODAL_OFFICER
+  RBI_CMS
+  RBI_SACHET
+  CYBERCRIME_PORTAL
+  CYBER_HELPLINE_1930
+  POLICE
+  CONSUMER_HELPLINE
+  APP_STORE
+  PLAY_STORE
+  OTHER
+}
+
+enum ComplaintDestinationStatus {
+  SUGGESTED
+  SELECTED
+  SKIPPED
+  UNAVAILABLE
+  ARCHIVED
+}
+
+enum ComplaintSubmissionStatus {
+  NOT_SUBMITTED
+  USER_PREPARING
+  SUBMITTED_BY_USER
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESPONSE_RECEIVED
+  RESOLVED
+  CLOSED
+  UNKNOWN
+}
+
+enum ComplaintHistoryChangeType {
+  COMPLAINT_STATUS
+  EVIDENCE_ADDED
+  EVIDENCE_STATUS
+  EVIDENCE_REMOVED
+  DRAFT_GENERATED
+  DESTINATION_SELECTED
+  SUBMISSION_STATUS
+  PRIVACY_CHANGED
+  NOTE_ADDED
+}
+
+enum RedactedReportStatus {
+  DRAFT
+  PENDING_MODERATION
+  PUBLISHED
+  REJECTED
+  WITHDRAWN
+  ARCHIVED
+}
+
 enum ProfileStatus {
   DRAFT
   PUBLISHED
@@ -542,6 +2036,37 @@ enum RiskLevel {
   SEVERE_COMPLAINT_PATTERN
   UNDER_REVIEW
   INSUFFICIENT_DATA
+}
+
+enum RegulatoryActionType {
+  WARNING
+  ADVISORY
+  DIRECTIONS
+  PENALTY
+  LICENSE_RESTRICTION
+  LICENSE_CANCELLATION
+  CEASE_AND_DESIST
+  APP_STORE_REMOVAL_REQUEST
+  FRAUD_ALERT
+  ENFORCEMENT_ACTION
+  OTHER
+}
+
+enum RegulatoryActionSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RegulatoryActionStatus {
+  ACTIVE
+  UNDER_REVIEW
+  STAYED
+  RESOLVED
+  SUPERSEDED
+  WITHDRAWN
+  ARCHIVED
 }
 
 enum ReviewType {

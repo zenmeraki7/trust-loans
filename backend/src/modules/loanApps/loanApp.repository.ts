@@ -1,4 +1,4 @@
-import { Prisma, ProfileStatus, ReviewStatus, RiskLevel } from "@prisma/client";
+import { Prisma, ProfileStatus, RegulatoryActionStatus, ReviewStatus, RiskLevel } from "@prisma/client";
 import { prisma } from "../../prisma/client.js";
 import type { CreateLoanAppInput, SuggestLoanAppInput } from "./loanApp.validators.js";
 
@@ -36,12 +36,27 @@ export const loanAppRepository = {
   findBySlug(slug: string) {
     return prisma.loanApp.findUnique({
       where: { slug },
-      include: { complaintSummaries: true },
+      include: {
+        complaintSummaries: true,
+        regulatoryActions: {
+          where: { status: { in: [RegulatoryActionStatus.ACTIVE, RegulatoryActionStatus.UNDER_REVIEW] } },
+          orderBy: [{ sourcePublishedAt: "desc" }, { updatedAt: "desc" }],
+        },
+      },
     });
   },
 
   findById(id: string) {
-    return prisma.loanApp.findUnique({ where: { id }, include: { complaintSummaries: true } });
+    return prisma.loanApp.findUnique({
+      where: { id },
+      include: {
+        complaintSummaries: true,
+        regulatoryActions: {
+          where: { status: { in: [RegulatoryActionStatus.ACTIVE, RegulatoryActionStatus.UNDER_REVIEW] } },
+          orderBy: [{ sourcePublishedAt: "desc" }, { updatedAt: "desc" }],
+        },
+      },
+    });
   },
 
   findPublishedReviewsByAppId(input: { appId: string; skip: number; take: number }) {
@@ -92,17 +107,34 @@ export const loanAppRepository = {
         packageName: input.packageName,
         developerName: input.developerName,
         companyName: input.companyName,
+        legalEntityName: input.legalEntityName,
+        businessType: input.businessType,
         websiteUrl: input.websiteUrl,
         playStoreUrl: input.playStoreUrl,
         appStoreUrl: input.appStoreUrl,
         claimedNbfcPartner: input.claimedNbfcPartner,
-        status: input.status ?? ProfileStatus.PUBLISHED,
-        verificationStatus: input.verificationStatus,
-        claimStatus: input.claimStatus,
-        riskLevel: input.riskLevel,
-        trustScore: input.trustScore,
-        averageRating: input.averageRating,
-        reviewCount: input.reviewCount,
+        associatedRegulatedEntity: input.associatedRegulatedEntity,
+        rbiRegistrationNumber: input.rbiRegistrationNumber,
+        rbiRegistrationVerifiedAt: input.rbiRegistrationVerifiedAt,
+        rbiRegistrationSourceUrl: input.rbiRegistrationSourceUrl,
+        interestRateRange: input.interestRateRange,
+        processingFees: input.processingFees,
+        latePaymentCharges: input.latePaymentCharges,
+        loanTenure: input.loanTenure,
+        privacyDisclosure: input.privacyDisclosure,
+        contactAccessDisclosure: input.contactAccessDisclosure,
+        recoveryPracticeInfo: input.recoveryPracticeInfo,
+        knownComplaintCategories: input.knownComplaintCategories,
+        publicWarningLabels: input.publicWarningLabels,
+        dataSource: input.dataSource,
+        lastReviewedAt: input.lastReviewedAt,
+        status: ProfileStatus.UNDER_REVIEW,
+        verificationStatus: "UNDER_VERIFICATION",
+        claimStatus: "UNCLAIMED",
+        riskLevel: "INSUFFICIENT_DATA",
+        trustScore: 0,
+        averageRating: 0,
+        reviewCount: 0,
         grievanceEmail: input.grievanceEmail,
         supportEmail: input.supportEmail,
         supportPhone: input.supportPhone,

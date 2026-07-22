@@ -5,15 +5,15 @@ import { reviewRepository } from "./review.repository.js";
 import type { CreateReviewInput, ReportReviewInput } from "./review.validators.js";
 
 export const reviewService = {
-  async createReview(input: CreateReviewInput) {
+  async createReview(userId: string, input: CreateReviewInput) {
     const app = await loanAppRepository.findById(input.loanAppId) ?? await loanAppRepository.findBySlug(input.loanAppId);
     if (!app) {
       throw new AppError("Loan app not found", 404);
     }
 
-    const review = await reviewRepository.create({ ...input, loanAppId: app.id });
+    const review = await reviewRepository.create(userId, { ...input, loanAppId: app.id });
     await auditLog({
-      actorId: input.userId,
+      actorId: userId,
       action: "review.submitted",
       targetType: "Review",
       targetId: review.id,
@@ -36,7 +36,8 @@ export const reviewService = {
     if (!existing) {
       throw new AppError("Review not found or not public", 404);
     }
-    const updated = await reviewRepository.incrementHelpful(id);
+    const updated = await reviewRepository.incrementHelpfulPublic(id);
+    if (!updated) throw new AppError("Review not found or not public", 404);
     await auditLog({
       action: "review.helpful",
       targetType: "Review",
@@ -48,7 +49,7 @@ export const reviewService = {
   },
 
   async reportReview(input: ReportReviewInput & { reporterUserId?: string }) {
-    const review = await reviewRepository.findById(input.reviewId);
+    const review = await reviewRepository.findPublicById(input.reviewId);
     if (!review) {
       throw new AppError("Review not found", 404);
     }

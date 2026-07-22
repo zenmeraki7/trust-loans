@@ -31,21 +31,27 @@ export const adminModerationRepository = {
 
   updateReview(input: {
     id: string;
+    allowedCurrentStatuses: readonly ReviewStatus[];
     status: ReviewStatus;
     publicBody?: string | null;
     redactionsApplied?: boolean;
     publishedAt?: Date | null;
   }) {
-    return prisma.review.update({
-      where: { id: input.id },
-      data: {
-        status: input.status,
-        publicBody: input.publicBody,
-        redactionsApplied: input.redactionsApplied,
-        publishedAt: input.publishedAt,
-      },
-      include: { loanApp: { select: { id: true, slug: true, name: true } } },
+    return prisma.$transaction(async (tx) => {
+      const result = await tx.review.updateMany({
+        where: { id: input.id, status: { in: [...input.allowedCurrentStatuses] } },
+        data: {
+          status: input.status,
+          publicBody: input.publicBody,
+          redactionsApplied: input.redactionsApplied,
+          publishedAt: input.publishedAt,
+        },
+      });
+      if (result.count !== 1) return null;
+      return tx.review.findUnique({
+        where: { id: input.id },
+        include: { loanApp: { select: { id: true, slug: true, name: true } } },
+      });
     });
   },
 };
-

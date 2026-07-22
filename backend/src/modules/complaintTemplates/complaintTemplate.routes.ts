@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../../middlewares/auth.js";
-import { requireRole } from "../../middlewares/roles.js";
+import { requireAction } from "../../authorization/authorization.js";
 import { validate } from "../../middlewares/validate.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { complaintTemplateController } from "./complaintTemplate.controller.js";
@@ -19,7 +18,7 @@ complaintTemplateRoutes.get("/complaint-templates", validate(listComplaintTempla
 complaintTemplateRoutes.get("/complaint-templates/:key", validate(complaintTemplateKeyParamSchema), asyncHandler(complaintTemplateController.getByKey));
 complaintTemplateRoutes.post("/complaint-templates/generate", validate(generateComplaintTemplateSchema), asyncHandler(complaintTemplateController.generate));
 
-complaintTemplateRoutes.post("/admin/complaint-templates", requireAuth, requireRole("ADMIN", "SUPER_ADMIN"), validate(createComplaintTemplateSchema), asyncHandler(complaintTemplateController.create));
-complaintTemplateRoutes.patch("/admin/complaint-templates/:id", requireAuth, requireRole("ADMIN", "SUPER_ADMIN"), validate(updateComplaintTemplateSchema), asyncHandler(complaintTemplateController.update));
-complaintTemplateRoutes.post("/admin/complaint-templates/:id/activate", requireAuth, requireRole("ADMIN", "SUPER_ADMIN"), validate(templateIdParamSchema), asyncHandler(complaintTemplateController.activate));
-complaintTemplateRoutes.post("/admin/complaint-templates/:id/deactivate", requireAuth, requireRole("ADMIN", "SUPER_ADMIN"), validate(templateIdParamSchema), asyncHandler(complaintTemplateController.deactivate));
+complaintTemplateRoutes.post("/admin/complaint-templates", requireAction("admin.template.write"), validate(createComplaintTemplateSchema), asyncHandler(complaintTemplateController.create));
+complaintTemplateRoutes.patch("/admin/complaint-templates/:id", requireAction("admin.template.write"), validate(updateComplaintTemplateSchema), asyncHandler(complaintTemplateController.update));
+complaintTemplateRoutes.post("/admin/complaint-templates/:id/activate", requireAction("admin.template.write"), validate(templateIdParamSchema), asyncHandler(complaintTemplateController.activate));
+complaintTemplateRoutes.post("/admin/complaint-templates/:id/deactivate", requireAction("admin.template.write"), validate(templateIdParamSchema), asyncHandler(complaintTemplateController.deactivate));

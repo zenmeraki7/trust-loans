@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireRole } from "../../middlewares/roles.js";
+import { requireAction } from "../../authorization/authorization.js";
 import { validate } from "../../middlewares/validate.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { adminModerationController } from "./adminModeration.controller.js";
@@ -14,7 +14,7 @@ import {
 
 export const adminModerationRoutes = Router();
 
-const moderateRoles = requireRole("ADMIN", "SUPER_ADMIN", "SENIOR_MODERATOR", "MODERATOR");
+const moderateRoles = requireAction("admin.moderation");
 
 adminModerationRoutes.get("/reviews", moderateRoles, validate(listModerationReviewsSchema), asyncHandler(adminModerationController.listReviews));
 adminModerationRoutes.get("/reviews/:id", moderateRoles, validate(moderationReviewIdSchema), asyncHandler(adminModerationController.getReview));

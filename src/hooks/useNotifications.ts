@@ -4,9 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { NotificationCenterData, NotificationPriority, NotificationType } from "@/types/notificationCenter";
 
-const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "demo-user";
-const auth = { userId: DEV_USER_ID, userRole: "USER" } as const;
-
 type NotificationDto = {
   id: string;
   type: string;
@@ -110,8 +107,8 @@ export function useNotificationCenter() {
     queryKey: ["notificationCenter"],
     queryFn: async () => {
       const [notifications, settings] = await Promise.all([
-        apiClient<{ items: NotificationDto[] }>("/api/notifications?limit=100", auth),
-        apiClient<NotificationSettingsDto>("/api/notification-settings", auth),
+        apiClient<{ items: NotificationDto[] }>("/api/notifications?limit=100"),
+        apiClient<NotificationSettingsDto>("/api/notification-settings"),
       ]);
       return buildNotificationCenter(notifications.items ?? [], settings);
     },
@@ -121,7 +118,7 @@ export function useNotificationCenter() {
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => apiClient<NotificationDto>(`/api/notifications/${id}/read`, { ...auth, method: "POST" }),
+    mutationFn: (id: string) => apiClient<NotificationDto>(`/api/notifications/${id}/read`, { method: "POST" }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notificationCenter"] }),
   });
 }
@@ -129,7 +126,7 @@ export function useMarkNotificationRead() {
 export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => apiClient<{ count: number }>("/api/notifications/read-all", { ...auth, method: "POST" }),
+    mutationFn: () => apiClient<{ count: number }>("/api/notifications/read-all", { method: "POST" }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notificationCenter"] }),
   });
 }

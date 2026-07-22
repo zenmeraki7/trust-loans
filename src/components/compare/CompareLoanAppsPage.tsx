@@ -43,7 +43,58 @@ export function AppCompareSelector() {
   );
 }
 
-export function CompareHeader() {
+const filterFields = [
+  ["q", "App or lender name", "Search app, lender, developer"],
+  ["legalEntity", "Legal entity", "Company/legal name"],
+  ["nbfc", "NBFC", "NBFC or regulated entity"],
+  ["interestRate", "Interest rate", "e.g. 18-36%"],
+  ["processingFee", "Processing fee", "e.g. 2%, ₹499"],
+  ["loanTenure", "Loan tenure", "e.g. 30 days"],
+  ["complaintCategory", "Complaint category", "Hidden charges, harassment"],
+  ["recoveryConcern", "Recovery concern", "Threat calls, contact abuse"],
+] as const;
+
+const selectFilters = [
+  { key: "complaintVolume", label: "Complaint volume", options: [["any", "Any"], ["has_complaints", "Has complaints"], ["high_volume", "High volume"]] },
+  { key: "regulatoryStatus", label: "Regulatory verification", options: [["all", "Any"], ["verified", "Verified"], ["claimed", "Claimed"], ["under_verification", "Under verification"]] },
+  { key: "appStoreAvailability", label: "App-store availability", options: [["any", "Any"], ["play_store", "Play Store"], ["app_store", "App Store"], ["both", "Both"], ["store_available", "Any store"]] },
+  { key: "safetyLevel", label: "Safety level", options: [["all", "Any"], ["low", "Low"], ["medium", "Medium"], ["high", "High"], ["severe", "Severe"]] },
+] as const;
+
+type CompareFilters = Record<string, string>;
+
+export function CompareFilterPanel({ filters, onChange, onClear }: { filters: CompareFilters; onChange: (key: string, value: string) => void; onClear: () => void }) {
+  return (
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-slate-900">Filter comparison candidates</p>
+        <button type="button" onClick={onClear} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Clear filters</button>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {filterFields.map(([key, label, placeholder]) => (
+          <label key={key} className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+            <input value={filters[key] ?? ""} onChange={(event) => onChange(key, event.target.value)} placeholder={placeholder} className="min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+          </label>
+        ))}
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Min complaint volume</span>
+          <input type="number" min={0} value={filters.minComplaintVolume ?? ""} onChange={(event) => onChange("minComplaintVolume", event.target.value)} placeholder="e.g. 100" className="min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+        </label>
+        {selectFilters.map((filter) => (
+          <label key={filter.key} className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{filter.label}</span>
+            <select value={filters[filter.key] ?? ""} onChange={(event) => onChange(filter.key, event.target.value)} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
+              {filter.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function CompareHeader({ filters, onFilterChange, onClearFilters }: { filters: CompareFilters; onFilterChange: (key: string, value: string) => void; onClearFilters: () => void }) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur md:p-8">
       <h1 className="text-2xl font-semibold text-slate-900 md:text-4xl">Compare loan apps before you borrow</h1>
@@ -51,6 +102,7 @@ export function CompareHeader() {
         Review trust scores, complaint patterns, claimed NBFC partners, and user experiences side by side.
       </p>
       <AppCompareSelector />
+      <CompareFilterPanel filters={filters} onChange={onFilterChange} onClear={onClearFilters} />
     </section>
   );
 }
@@ -108,6 +160,16 @@ export function CompareMetricTable({ apps }: { apps: CompareLoanApp[] }) {
     { label: "Grievance Response Score", get: (a) => a.scores.grievanceResponse, isNumeric: true },
     { label: "Company Response Status", get: (a) => (a.publicDetails.companyResponded ? "Available" : "Not available") },
     { label: "Claimed NBFC Partner Available", get: (a) => (a.publicDetails.nbfcPartnerAvailable ? "Available" : "Under verification") },
+    { label: "Legal entity", get: (a) => a.legalEntityName },
+    { label: "Associated NBFC / regulated entity", get: (a) => a.associatedRegulatedEntity },
+    { label: "Interest-rate range", get: (a) => a.interestRateRange },
+    { label: "Processing fee", get: (a) => a.processingFees },
+    { label: "Loan tenure", get: (a) => a.loanTenure },
+    { label: "Regulatory verification", get: (a) => a.regulatoryVerificationStatus.replaceAll("_", " ") },
+    { label: "App-store availability", get: (a) => a.appStoreAvailability.replaceAll("_", " ") },
+    { label: "Known complaint categories", get: (a) => a.knownComplaintCategories.join(", ") || "Not listed" },
+    { label: "Public warning labels", get: (a) => a.publicWarningLabels.join(", ") || "Not listed" },
+    { label: "Recovery-practice information", get: (a) => a.recoveryPracticeInfo },
     { label: "Grievance Officer Details Available", get: (a) => (a.publicDetails.grievanceOfficerAvailable ? "Available" : "Unavailable") },
     { label: "Last Updated Date", get: (a) => a.publicDetails.lastUpdated },
   ];
@@ -280,12 +342,12 @@ export function EmptyCompareState() {
   );
 }
 
-export default function CompareLoanAppsPage({ apps }: { apps: CompareLoanApp[] }) {
+export default function CompareLoanAppsPage({ apps, filters, onFilterChange, onClearFilters }: { apps: CompareLoanApp[]; filters: CompareFilters; onFilterChange: (key: string, value: string) => void; onClearFilters: () => void }) {
   if (apps.length === 0) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 px-4 py-6 md:px-6 md:py-10">
         <div className="mx-auto max-w-6xl space-y-6">
-          <CompareHeader />
+          <CompareHeader filters={filters} onFilterChange={onFilterChange} onClearFilters={onClearFilters} />
           <EmptyCompareState />
           <CompareDisclaimerBox />
         </div>
@@ -296,7 +358,7 @@ export default function CompareLoanAppsPage({ apps }: { apps: CompareLoanApp[] }
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 pb-24">
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6 md:py-10">
-        <CompareHeader />
+        <CompareHeader filters={filters} onFilterChange={onFilterChange} onClearFilters={onClearFilters} />
         <SelectedCompareCards apps={apps.slice(0, 3)} />
         <CompareMetricTable apps={apps.slice(0, 3)} />
         <ComplaintPatternCompare apps={apps.slice(0, 3)} />

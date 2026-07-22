@@ -14,7 +14,10 @@ export const apiLoanAppSchema = z.object({
   logoUrl: z.string().nullable().optional(),
   developerName: z.string().nullable().optional(),
   companyName: z.string().nullable().optional(),
+  legalEntityName: z.string().nullable().optional(),
+  businessType: z.string().nullable().optional(),
   claimedNbfcPartner: z.string().nullable().optional(),
+  associatedRegulatedEntity: z.string().nullable().optional(),
   status: z.string(),
   verificationStatus: z.string().optional(),
   claimStatus: z.string().optional(),
@@ -27,6 +30,20 @@ export const apiLoanAppSchema = z.object({
   websiteUrl: z.string().nullable().optional(),
   playStoreUrl: z.string().nullable().optional(),
   appStoreUrl: z.string().nullable().optional(),
+  rbiRegistrationNumber: z.string().nullable().optional(),
+  rbiRegistrationVerifiedAt: z.string().or(z.date()).nullable().optional(),
+  rbiRegistrationSourceUrl: z.string().nullable().optional(),
+  interestRateRange: z.string().nullable().optional(),
+  processingFees: z.string().nullable().optional(),
+  latePaymentCharges: z.string().nullable().optional(),
+  loanTenure: z.string().nullable().optional(),
+  privacyDisclosure: z.string().nullable().optional(),
+  contactAccessDisclosure: z.string().nullable().optional(),
+  recoveryPracticeInfo: z.string().nullable().optional(),
+  knownComplaintCategories: z.array(z.string()).optional(),
+  publicWarningLabels: z.array(z.string()).optional(),
+  dataSource: z.string().nullable().optional(),
+  lastReviewedAt: z.string().or(z.date()).nullable().optional(),
   grievanceEmail: z.string().nullable().optional(),
   supportEmail: z.string().nullable().optional(),
   supportPhone: z.string().nullable().optional(),
@@ -43,6 +60,27 @@ export const apiLoanAppSchema = z.object({
     .optional(),
   updatedAt: z.string().or(z.date()).optional(),
   publicSafetyNote: z.string().optional(),
+  regulatoryActions: z
+    .array(
+      z.object({
+        id: z.string(),
+        authorityName: z.string(),
+        authorityJurisdiction: z.string().nullable().optional(),
+        actionType: z.string(),
+        severity: z.string(),
+        status: z.string(),
+        title: z.string(),
+        summary: z.string().nullable().optional(),
+        orderNumber: z.string().nullable().optional(),
+        sourceUrl: z.string().nullable().optional(),
+        sourceDocumentUrl: z.string().nullable().optional(),
+        sourcePublishedAt: z.string().or(z.date()).nullable().optional(),
+        effectiveFrom: z.string().or(z.date()).nullable().optional(),
+        effectiveUntil: z.string().or(z.date()).nullable().optional(),
+        verifiedAt: z.string().or(z.date()).nullable().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const apiReviewSchema = z.object({
@@ -90,4 +128,3 @@ export type SubmitReviewResponse = {
   message: string;
   createdAt: string;
 };
-

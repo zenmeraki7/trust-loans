@@ -4,19 +4,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { EvidenceMetadata } from "@/types/evidence";
 
-const DEV_USER_ID = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "demo-user";
-
 export function useCreateEvidenceUploadUrl() {
   return useMutation({
     mutationFn: (body: { fileName: string; mimeType: "image/png" | "image/jpeg" | "image/webp" | "application/pdf"; fileSizeBytes: number; reviewId?: string; loanAppId?: string }) =>
-      apiClient<{ storageKey: string; uploadUrl: string; expiresInSeconds: number }>("/api/evidence/upload-url", { method: "POST", body, userId: DEV_USER_ID, userRole: "USER" }),
+      apiClient<{ storageKey: string; uploadUrl: string; expiresInSeconds: number }>("/api/evidence/upload-url", { method: "POST", body }),
   });
 }
 
 export function useCompleteEvidenceUpload() {
   return useMutation({
     mutationFn: (body: { storageKey: string; fileName: string; mimeType: "image/png" | "image/jpeg" | "image/webp" | "application/pdf"; fileSizeBytes: number; reviewId?: string; loanAppId?: string; sensitiveFlags?: string[] }) =>
-      apiClient<EvidenceMetadata>("/api/evidence/complete", { method: "POST", body, userId: DEV_USER_ID, userRole: "USER" }),
+      apiClient<EvidenceMetadata>("/api/evidence/complete", { method: "POST", body }),
   });
 }
 
@@ -24,32 +22,32 @@ export function useEvidenceMetadata(id: string) {
   return useQuery({
     queryKey: ["evidence", id],
     enabled: Boolean(id),
-    queryFn: () => apiClient<EvidenceMetadata>(`/api/evidence/${id}/metadata`, { userId: DEV_USER_ID, userRole: "USER" }),
+    queryFn: () => apiClient<EvidenceMetadata>(`/api/evidence/${id}/metadata`),
   });
 }
 
 export function useDeleteEvidence() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => apiClient<void>(`/api/evidence/${id}`, { method: "DELETE", userId: DEV_USER_ID, userRole: "USER" }),
+    mutationFn: (id: string) => apiClient<void>(`/api/evidence/${id}`, { method: "DELETE" }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["evidence"] }),
   });
 }
 
 export function useAdminEvidenceQueue() {
-  return useQuery({ queryKey: ["adminEvidenceQueue"], queryFn: () => apiClient<EvidenceMetadata[]>("/api/admin/evidence", { userId: DEV_USER_ID, userRole: "ADMIN" }) });
+  return useQuery({ queryKey: ["adminEvidenceQueue"], queryFn: () => apiClient<EvidenceMetadata[]>("/api/admin/evidence") });
 }
 
 export function useAdminEvidenceDetail(id: string) {
-  return useQuery({ queryKey: ["adminEvidence", id], enabled: Boolean(id), queryFn: () => apiClient<EvidenceMetadata>(`/api/admin/evidence/${id}`, { userId: DEV_USER_ID, userRole: "ADMIN" }) });
+  return useQuery({ queryKey: ["adminEvidence", id], enabled: Boolean(id), queryFn: () => apiClient<EvidenceMetadata>(`/api/admin/evidence/${id}`) });
 }
 
 export function useSecureOpenEvidence() {
-  return useMutation({ mutationFn: (input: { id: string; reasonForAccess: string }) => apiClient<{ downloadUrl: string }>(`/api/admin/evidence/${input.id}/secure-open`, { method: "POST", body: { reasonForAccess: input.reasonForAccess }, userId: DEV_USER_ID, userRole: "ADMIN" }) });
+  return useMutation({ mutationFn: (input: { id: string; reasonForAccess: string }) => apiClient<{ downloadUrl: string }>(`/api/admin/evidence/${input.id}/secure-open`, { method: "POST", body: { reasonForAccess: input.reasonForAccess } }) });
 }
 
 export function useEvidenceDecisionActions() {
-  const act = (id: string, action: string, reason: string) => apiClient<EvidenceMetadata>(`/api/admin/evidence/${id}/${action}`, { method: "POST", body: { reason }, userId: DEV_USER_ID, userRole: "ADMIN" });
+  const act = (id: string, action: string, reason: string) => apiClient<EvidenceMetadata>(`/api/admin/evidence/${id}/${action}`, { method: "POST", body: { reason } });
   return {
     accept: (id: string, reason = "Accepted") => act(id, "accept", reason),
     reject: (id: string, reason: string) => act(id, "reject", reason),

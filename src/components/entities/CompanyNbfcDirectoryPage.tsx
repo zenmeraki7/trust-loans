@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type ClipboardEvent, type FormEvent, useMemo, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { safeImageUrl } from "@/lib/publicContent";
 import { useCompanies, type CompanyDirectoryItem } from "@/hooks/useCompanies";
 import type { EntityProfileData } from "@/types/entityProfile";
 import { paydayLoanNbfcs } from "@/data/paydayLoanNbfcs";
@@ -85,12 +86,12 @@ function AddNbfcCompanyForm({ onCancel, onCreated }: { onCancel: () => void; onC
   const updateLogoFile = async (file?: File) => {
     setError("");
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Logo file must be an image.");
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      setError("Logo must be a PNG, JPEG, WebP, or GIF image.");
       return;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      setError("Logo image must be smaller than 4 MB.");
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Logo image must be smaller than 2 MB.");
       return;
     }
     update("logoUrl", await readImageAsDataUrl(file));
@@ -159,10 +160,10 @@ function AddNbfcCompanyForm({ onCancel, onCreated }: { onCancel: () => void; onC
             <input value={form.logoUrl} onChange={(event) => update("logoUrl", event.target.value)} onPaste={(event) => void updateLogoPaste(event)} className="min-w-0 flex-1 px-3 py-2 text-sm outline-none" placeholder="Paste URL or choose image" />
             <label className="shrink-0 cursor-pointer border-l border-slate-300 bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
               Choose image
-              <input type="file" accept="image/*" onChange={(event) => void updateLogoChoice(event)} className="sr-only" />
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => void updateLogoChoice(event)} className="sr-only" />
             </label>
           </div>
-          {form.logoUrl ? <img src={form.logoUrl} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
+          {safeImageUrl(form.logoUrl) ? <img src={safeImageUrl(form.logoUrl)!} alt="Logo preview" className="mt-2 h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 object-contain" /> : null}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">Official website</label>

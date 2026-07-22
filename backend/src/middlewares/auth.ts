@@ -1,10 +1,17 @@
-import type { NextFunction, Request, Response } from "express";
 import { UserRole } from "@prisma/client";
+import type { NextFunction, Request, Response } from "express";
+import { clearSessionCookie, sessionTokenFrom } from "../modules/auth/auth.cookies.js";
+import { hashOpaqueToken } from "../modules/auth/auth.crypto.js";
 import { prisma } from "../prisma/client.js";
+import { setPrivateNoStore } from "./privateResponse.js";
+
+export const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+const LAST_SEEN_WRITE_INTERVAL_MS = 5 * 60 * 1000;
 
 export type AuthUser = {
   id: string;
-  role: string;
+  role: UserRole;
+  sessionId: string;
 };
 
 declare global {
@@ -15,39 +22,78 @@ declare global {
   }
 }
 
-const toUserRole = (role?: string) => {
-  if (!role) return UserRole.USER;
-  return Object.values(UserRole).includes(role as UserRole) ? (role as UserRole) : UserRole.USER;
-};
+export const authenticateRequest = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = sessionTokenFrom(req);
+    if (!token) {
+      next();
+      return;
+    }
 
-const devEmailFor = (userId: string) => `${userId.replace(/[^a-zA-Z0-9._-]/g, "_")}@dev.trust-loans.local`;
-
-export const optionalAuth = async (req: Request, _res: Response, next: NextFunction) => {
-  const userId = req.header("x-user-id");
-  const role = req.header("x-user-role");
-  if (userId) {
-    const userRole = toUserRole(role);
-    await prisma.user.upsert({
-      where: { id: userId },
-      create: {
-        id: userId,
-        email: devEmailFor(userId),
-        name: userId,
-        role: userRole,
-        emailVerified: true,
+    const now = new Date();
+    const session = await prisma.session.findUnique({
+      where: { tokenHash: hashOpaqueToken(token) },
+      select: {
+        id: true,
+        sessionVersion: true,
+        lastSeenAt: true,
+        expiresAt: true,
+        revokedAt: true,
+        user: {
+          select: {
+            id: true,
+            role: true,
+            status: true,
+            sessionVersion: true,
+          },
+        },
       },
-      update: { role: userRole },
     });
-    req.user = { id: userId, role: userRole };
+
+    const idle = session ? now.getTime() - session.lastSeenAt.getTime() >= SESSION_IDLE_TIMEOUT_MS : false;
+    const invalid = !session || session.revokedAt !== null || session.expiresAt <= now || idle ||
+      session.user.status !== "ACTIVE" || session.sessionVersion !== session.user.sessionVersion;
+
+    if (invalid) {
+      if (session && session.revokedAt === null) {
+        await prisma.session.updateMany({
+          where: { id: session.id, revokedAt: null },
+          data: { revokedAt: now },
+        });
+      }
+      clearSessionCookie(res);
+      next();
+      return;
+    }
+
+    req.user = {
+      id: session.user.id,
+      role: session.user.role,
+      sessionId: session.id,
+    };
+
+    if (now.getTime() - session.lastSeenAt.getTime() >= LAST_SEEN_WRITE_INTERVAL_MS) {
+      await prisma.session.updateMany({
+        where: {
+          id: session.id,
+          revokedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { lastSeenAt: now },
+      });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 };
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  setPrivateNoStore(res);
   if (!req.user) {
     res.status(401).json({ message: "Authentication required" });
     return;
   }
   next();
 };
-

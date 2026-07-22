@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const scoreBreakdownParamSchema = z.object({
-  params: z.object({ id: z.string().min(1) }),
+  params: z.object({ id: z.string().min(1) }).strict(),
 });
 
 export const updateScoringConfigSchema = z.object({
@@ -19,7 +19,7 @@ export const updateScoringConfigSchema = z.object({
     privacyComplaintPenalty: z.number().min(0).max(100).optional(),
     hiddenChargeComplaintPenalty: z.number().min(0).max(100).optional(),
     staleVerificationPenalty: z.number().min(0).max(100).optional(),
-  }),
+  }).strict(),
 });
 
 export const recalculateScoringSchema = z.object({
@@ -36,9 +36,8 @@ export const recalculateScoringSchema = z.object({
     appId: z.string().optional(),
     entityId: z.string().optional(),
     reason: z.string().max(500).optional(),
-  }),
+  }).strict(),
 });
 
 export type UpdateScoringConfigInput = z.infer<typeof updateScoringConfigSchema>["body"];
 export type RecalculateScoringInput = z.infer<typeof recalculateScoringSchema>["body"];
-

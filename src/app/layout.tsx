@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import MainNavigation from "@/components/navigation/MainNavigation";
 import AccessibilityControls from "@/components/accessibility/AccessibilityControls";
 import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
@@ -16,7 +17,9 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // A per-request render is required so Next.js can attach the middleware nonce.
+  await connection();
   return (
     <html lang="en">
       <body>

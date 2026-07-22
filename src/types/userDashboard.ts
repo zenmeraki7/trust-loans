@@ -12,10 +12,7 @@ export type ReportStatus =
 
 export type EvidenceStatus =
   | "none"
-  | "private"
-  | "under_review"
-  | "accepted_for_verification"
-  | "rejected_for_safety";
+  | "not_collected";
 
 export type UserDashboardData = {
   user: {
@@ -31,7 +28,7 @@ export type UserDashboardData = {
     needsMoreInfo: number;
     rejected: number;
     drafts: number;
-    evidenceFiles: number;
+    evidenceReminders: number;
   };
   reports: Array<{
     id: string;
@@ -51,7 +48,7 @@ export type UserDashboardData = {
     moderationNotes: string[];
     privacy: {
       displayMode: "anonymous" | "first_name_only";
-      evidencePrivate: boolean;
+    evidencePrivate: boolean;
     };
     timeline: Array<{
       label: string;
@@ -82,10 +79,10 @@ export type UserDashboardData = {
     nextActions: string[];
   };
   evidenceVault: {
-    totalFiles: number;
-    pendingReview: number;
-    acceptedForVerification: number;
-    rejectedForSafety: number;
+    totalReminders: number;
+    filesStoredByTrustLoans: number;
+    uploadsEnabled: boolean;
+    externalSubmissionRequired: boolean;
   };
   savedApps: Array<{
     id: string;
