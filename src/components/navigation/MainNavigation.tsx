@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { getOptionalAuthSession } from "@/lib/authSession";
 
 type NavLink = {
   href: string;
@@ -160,9 +161,11 @@ export default function MainNavigation() {
 
   useEffect(() => {
     let active = true;
-    apiClient("/api/auth/session")
-      .then(() => { if (active) setIsAuthenticated(true); })
-      .catch(() => { if (active) setIsAuthenticated(false); });
+    getOptionalAuthSession()
+      .then((session) => { if (active) setIsAuthenticated(session !== null); })
+      .catch((error) => {
+        if (active) console.error("Unable to check authentication status.", error);
+      });
     return () => { active = false; };
   }, [pathname]);
 

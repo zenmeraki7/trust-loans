@@ -8,7 +8,13 @@ export const paginationQuerySchema = z.object({
 export type PaginationInput = z.infer<typeof paginationQuerySchema>;
 
 export const getPagination = (query: unknown) => {
-  const parsed = paginationQuerySchema.parse(query);
+  const values = query && typeof query === "object" && !Array.isArray(query)
+    ? query as Record<string, unknown>
+    : {};
+  const parsed = paginationQuerySchema.parse({
+    page: values.page,
+    limit: values.limit,
+  });
   return {
     page: parsed.page,
     limit: parsed.limit,

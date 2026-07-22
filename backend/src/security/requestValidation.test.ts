@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { z } from "zod";
 import { unexpectedRequestFields } from "../middlewares/validate.js";
+import { getPagination } from "../utils/pagination.js";
 import { signupSchema } from "../modules/auth/auth.validators.js";
 import { createCaseSchema } from "../modules/harassmentCases/harassmentCase.validators.js";
-import { createLoanAppSchema } from "../modules/loanApps/loanApp.validators.js";
+import { createLoanAppSchema, listLoanAppsSchema } from "../modules/loanApps/loanApp.validators.js";
 import { createComplaintDraftSchema } from "../modules/complaintTemplates/complaintTemplate.validators.js";
 import { createReviewSchema } from "../modules/reviews/review.validators.js";
 
@@ -64,4 +65,23 @@ test("validation middleware detects unknown keys even for legacy stripping schem
   const input = { body: { title: "Allowed", ownerId: "attacker", nested: { role: "ADMIN" }, emptyUnknown: {} }, params: {}, query: {} };
   const parsed = legacySchema.parse(input);
   assert.deepEqual(unexpectedRequestFields(input, parsed), ["body.ownerId", "body.nested", "body.emptyUnknown"]);
+});
+
+test("loan-app sorting accepts only frontend-supported values", () => {
+  const supported = ["trust_desc", "trust_asc", "reviews_desc", "recent", "reported", "updated"];
+  for (const sort of supported) {
+    assert.equal(listLoanAppsSchema.safeParse({ query: { sort } }).success, true, `rejected supported sort ${sort}`);
+  }
+
+  assert.equal(listLoanAppsSchema.safeParse({ query: { sort: "name_desc" } }).success, false);
+  assert.equal(listLoanAppsSchema.safeParse({ query: { sort: "trust_desc", orderBy: "name" } }).success, false);
+});
+
+test("pagination accepts a query after route-specific fields were strictly validated", () => {
+  assert.deepEqual(getPagination({ page: 2, limit: 25, sort: "trust_desc" }), {
+    page: 2,
+    limit: 25,
+    skip: 25,
+    take: 25,
+  });
 });

@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../utils/AppError.js";
 import { InvalidCredentialsError } from "../modules/auth/auth.errors.js";
-import { safeErrorType } from "../utils/safeLogging.js";
 
 export const notFoundHandler = (req: Request, _res: Response, next: NextFunction) => {
   next(new AppError(`Route not found: ${req.method} ${req.path}`, 404));
@@ -44,7 +43,9 @@ export const errorHandler = (error: unknown, req: Request, res: Response, _next:
 
   console.error("Unhandled request error.", {
     requestId: req.requestId,
-    errorType: safeErrorType(error),
+    method: req.method,
+    path: req.path,
+    error,
   });
   res.status(500).json({ message: "Internal server error" });
 };

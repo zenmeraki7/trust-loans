@@ -8,7 +8,7 @@ export const CSRF_COOKIE_NAME = process.env.NODE_ENV === "production"
 const csrfCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  sameSite: process.env.NODE_ENV === "production" ? "none" as const : "lax" as const,
   path: "/",
 };
 

@@ -8,6 +8,7 @@ import { useReviewSafetyScan } from "@/hooks/useReviewSafetyScan";
 import { useSubmitReview } from "@/hooks/useSubmitReview";
 import { scanReviewTextLocally } from "@/lib/reviewSafetyScan";
 import { apiClient } from "@/lib/apiClient";
+import { getOptionalAuthSession } from "@/lib/authSession";
 import SafeReviewWriter from "@/components/tools/SafeReviewWriter";
 import type { AppReviewContext, DisplayMode, ReviewSubmission, ReviewType } from "@/types/reviewSubmission";
 
@@ -644,9 +645,11 @@ export default function SubmitLoanAppReviewPage({ slug }: { slug: string }) {
 
   useEffect(() => {
     let active = true;
-    apiClient<{ user: { id: string } }>("/api/auth/session")
-      .then(() => { if (active) setIsAuthenticated(true); })
-      .catch(() => { if (active) setIsAuthenticated(false); })
+    getOptionalAuthSession()
+      .then((session) => { if (active) setIsAuthenticated(session !== null); })
+      .catch((error) => {
+        if (active) console.error("Unable to check authentication status.", error);
+      })
       .finally(() => { if (active) setAuthChecked(true); });
     return () => { active = false; };
   }, []);

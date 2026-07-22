@@ -7,8 +7,6 @@ function parseOrigins(value: string) {
     .filter(Boolean);
 }
 
-const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:3000";
-
 function parsePublicAppOrigin() {
   const configured = process.env.PUBLIC_APP_ORIGIN;
   if (!configured && process.env.NODE_ENV === "production") {
@@ -22,6 +20,14 @@ function parsePublicAppOrigin() {
   return origin.origin;
 }
 
+const publicAppOrigin = parsePublicAppOrigin();
+const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:3000";
+const corsOrigins = parseOrigins(corsOrigin);
+
+if (process.env.NODE_ENV === "production" && (corsOrigins.length !== 1 || corsOrigins[0] !== publicAppOrigin)) {
+  throw new Error("CORS_ORIGIN must exactly match PUBLIC_APP_ORIGIN in production.");
+}
+
 function optionalHttpsUrl(value: string | undefined, name: string) {
   if (!value) return undefined;
   const url = new URL(value);
@@ -32,8 +38,8 @@ function optionalHttpsUrl(value: string | undefined, name: string) {
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   corsOrigin,
-  corsOrigins: parseOrigins(corsOrigin),
-  publicAppOrigin: parsePublicAppOrigin(),
+  corsOrigins,
+  publicAppOrigin,
   trustProxy: process.env.TRUST_PROXY === "true",
   cspEnforce: process.env.CSP_ENFORCE === "true",
   securityEventSinkUrl: optionalHttpsUrl(process.env.SECURITY_EVENT_SINK_URL, "SECURITY_EVENT_SINK_URL"),
