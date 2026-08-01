@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type ClipboardEvent, FormEvent, useState } from "react";
+import { type ChangeEvent, type ClipboardEvent, FormEvent, type SyntheticEvent, useState } from "react";
 import type { CreateAdminLoanAppInput } from "@/hooks/useAdminDashboards";
 import type {
   AdminLoanAppDatabase,
@@ -13,6 +13,13 @@ import GlobalFilterPanel from "@/components/filters/GlobalFilterPanel";
 import { adminAppDbFilterSchema } from "@/config/filterSchemas";
 import { applyGlobalFilters } from "@/lib/filterEngine";
 import { safeImageUrl } from "@/lib/publicContent";
+
+const DEFAULT_APP_LOGO = "/images/default-app-logo.svg";
+
+function useDefaultLogo(event: SyntheticEvent<HTMLImageElement>) {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = DEFAULT_APP_LOGO;
+}
 
 export function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
   const tone: Record<RiskLevel, string> = {
@@ -413,7 +420,7 @@ export function AdminAppRecordsTable({
         {apps.map((a) => (
           <article key={a.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm shadow-slate-100">
             <div className="flex items-start gap-3">
-              <img src={a.logoUrl} alt={a.name} className="h-11 w-11 shrink-0 rounded-lg border border-slate-200 bg-white p-1 object-contain" />
+              <img src={a.logoUrl || DEFAULT_APP_LOGO} onError={useDefaultLogo} alt={a.name} className="h-11 w-11 shrink-0 rounded-lg border border-slate-200 bg-white p-1 object-contain" />
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-slate-950">{a.name}</h3>
                 <p className="mt-0.5 font-mono text-[11px] text-slate-500">{a.slug}</p>
@@ -475,7 +482,7 @@ export function AdminAppRecordsTable({
               <tr key={a.id} className="border-b border-slate-100">
                 <td className="py-2 pr-3">
                   <div className="flex items-center gap-2">
-                    <img src={a.logoUrl} alt={a.name} className="h-8 w-8 rounded border border-slate-200 bg-white p-0.5 object-contain" />
+                    <img src={a.logoUrl || DEFAULT_APP_LOGO} onError={useDefaultLogo} alt={a.name} className="h-8 w-8 rounded border border-slate-200 bg-white p-0.5 object-contain" />
                     <span className="font-medium text-slate-900">{a.name}</span>
                   </div>
                 </td>

@@ -272,7 +272,15 @@ export function LoanAppResultCard({ app, basePath = "/loan-apps", reviewHref, sh
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="flex items-start gap-3">
-        <img src={app.logoUrl} alt={`${app.name} logo`} className="h-20 w-20 rounded-xl border border-slate-200 bg-white p-1 object-contain" />
+        <img
+          src={app.logoUrl || "/images/default-app-logo.svg"}
+          alt={`${app.name} logo`}
+          className="h-20 w-20 rounded-xl border border-slate-200 bg-white p-1 object-contain"
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = "/images/default-app-logo.svg";
+          }}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold text-slate-900">{app.name}</h3>
