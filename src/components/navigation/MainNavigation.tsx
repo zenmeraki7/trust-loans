@@ -17,6 +17,9 @@ type NavGroup = {
 };
 
 const primaryLinks: NavLink[] = [
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About Us" },
+  { href: "/contact", label: "Contact Us" },
   { href: "/directory", label: "Directory" },
   { href: "/loan-apps", label: "Loan Apps" },
   { href: "/entities", label: "NBFCs" },
@@ -123,7 +126,7 @@ function DesktopNavLink({ href, label, active }: NavLink & { active: boolean }) 
       href={href}
       aria-current={active ? "page" : undefined}
       className={`rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-        active ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+        active ? "bg-[#070b14] text-white shadow-sm" : "text-slate-600 hover:bg-blue-50 hover:text-[#070b14]"
       }`}
     >
       {label}
@@ -138,7 +141,7 @@ function MobileNavLink({ href, label, active, onClick }: NavLink & { active: boo
       aria-current={active ? "page" : undefined}
       onClick={onClick}
       className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-        active ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+        active ? "bg-[#070b14] text-white" : "text-slate-700 hover:bg-blue-50 hover:text-[#070b14]"
       }`}
     >
       {label}
@@ -195,14 +198,14 @@ export default function MainNavigation() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-900/[0.03] backdrop-blur supports-[backdrop-filter]:bg-white/85">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
+      <nav className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/" onClick={() => setDirectoryOpen(false)} className="group flex min-w-0 items-center gap-3 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#070b14] text-sm font-bold text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
               TL
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold tracking-tight text-slate-950 sm:text-base">Trust Loans</span>
+              <span className="block truncate text-sm font-semibold tracking-tight text-slate-950 sm:text-base">Borrowscope</span>
               <span className="hidden text-xs font-medium text-slate-500 sm:block">Borrower safety platform</span>
             </span>
           </Link>
@@ -223,7 +226,7 @@ export default function MainNavigation() {
               </button>
             </> : <>
               <Link href="/login" className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950">Log in</Link>
-              <Link href="/signup" className="rounded-full bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">Sign up</Link>
+              <Link href="/signup" className="rounded-full bg-[#070b14] px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">Sign up</Link>
             </>}
             <Link
               href="/admin/apps"
@@ -235,7 +238,7 @@ export default function MainNavigation() {
             >
               Admin
             </Link>
-            <button
+            {/* <button
               type="button"
               aria-expanded={directoryOpen}
               aria-controls="desktop-route-menu"
@@ -243,7 +246,7 @@ export default function MainNavigation() {
               className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
               All Pages
-            </button>
+            </button> */}
           </div>
 
           <button
@@ -295,7 +298,7 @@ export default function MainNavigation() {
         >
           {mobileOpen ? <div className="space-y-4 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-900/10">
             <div className="grid gap-1">
-              {[{ href: "/", label: "Home" }, ...primaryLinks, ...(isAuthenticated ? [] : [{ href: "/login", label: "Log in" }, { href: "/signup", label: "Sign up" }]), { href: "/admin/apps", label: "Admin" }].map((link) => (
+              {[...primaryLinks, ...(isAuthenticated ? [] : [{ href: "/login", label: "Log in" }, { href: "/signup", label: "Sign up" }]), { href: "/admin/apps", label: "Admin" }].map((link) => (
                 <MobileNavLink key={link.href} {...link} active={isActivePath(pathname, link.href)} onClick={() => setMobileOpen(false)} />
               ))}
               {isAuthenticated ? <>

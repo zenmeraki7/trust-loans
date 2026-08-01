@@ -129,7 +129,7 @@ const faqs = [
 
 export default function HomePage() {
   return (
-    <main className="home-page min-h-screen bg-slate-100 text-slate-950">
+    <main className="home-page min-h-screen bg-[#f3f7ff] text-slate-950">
       <section className="px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-[1500px] items-start gap-5 xl:grid-cols-[1.45fr_0.65fr]">
           {/* Main Hero Card - Dark Modern Styling */}
@@ -167,7 +167,7 @@ export default function HomePage() {
 
                 <form
                   action="/loan-apps"
-                  className="mt-6 flex flex-col gap-2 rounded-2xl border-2 border-sky-500/60 bg-slate-900/90 p-2 sm:flex-row focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-500/20 shadow-lg shadow-sky-950/20"
+                  className="mt-6 flex flex-col gap-2 rounded-2xl border-2 border-blue-500/60 bg-slate-900/90 p-2 sm:flex-row focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/20 shadow-lg shadow-blue-950/20"
                 >
                   <label className="sr-only" htmlFor="loan-search">
                     Search loan app or company
@@ -178,7 +178,7 @@ export default function HomePage() {
                     className="min-h-12 flex-1 border-0 bg-transparent px-4 text-sm font-semibold text-white placeholder-slate-300 focus:outline-none focus:ring-0"
                     placeholder="Search any loan app or lender name..."
                   />
-                  <button className="rounded-xl bg-sky-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-sky-300 active:scale-95 shadow-md">
+                  <button className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-blue-500 active:scale-95 shadow-md">
                     Check app
                   </button>
                 </form>
@@ -222,9 +222,9 @@ export default function HomePage() {
             </div>
 
             {/* Sub-cards inside Hero */}
-          <div className="grid gap-4 border-t border-slate-800/80 bg-slate-900/60 p-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid gap-4 border-t border-slate-800/80 bg-slate-900/60 p-4">
   {/* Top Reviewed Lending Apps - White Card */}
-  <section className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm">
+  <section className="min-h-[34rem] w-full rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm">
     <div className="mb-4 flex items-center justify-between">
       <div>
         <h2 className="text-base font-bold text-slate-900">Top Reviewed Lending Apps</h2>
@@ -234,7 +234,7 @@ export default function HomePage() {
     </div>
     <div className="space-y-3">
       {topApps.map((app) => (
-        <div key={app.name} className="flex items-center justify-between rounded-xl bg-slate-50 p-3 text-xs border border-slate-100">
+        <div key={app.name} className="flex min-h-20 items-center justify-between rounded-xl bg-slate-50 p-4 text-xs border border-slate-100">
           <div>
             <p className="font-bold text-slate-900">{app.name}</p>
             <p className="text-[11px] text-slate-500">{app.company}</p>
@@ -256,41 +256,12 @@ export default function HomePage() {
 
   {/* Recent Borrower Experiences - White Card */}
  {/* Recent Borrower Experiences - Fixed Alignment */}
-<section className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm">
-  <div className="mb-4 flex items-center justify-between">
-    <div>
-      <h2 className="text-base font-bold text-slate-900">Recent Borrower Experiences</h2>
-      <p className="text-xs text-slate-500">Live reports from borrowers</p>
-    </div>
-    <Link href="/loan-apps" className="text-xs font-semibold text-blue-600 hover:underline">Write review &rarr;</Link>
-  </div>
-  <div className="space-y-3">
-    {experiences.map((item) => (
-      <article key={item.title} className="rounded-xl border border-slate-100 bg-slate-50 p-3.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <span className="inline-block rounded bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
-              User Allegation
-            </span>
-            <h3 className="mt-1.5 text-xs font-bold text-slate-900">{item.title}</h3>
-            <p className="mt-1 text-xs text-slate-600 leading-snug">{item.detail}</p>
-            <p className="mt-2 text-[10px] text-slate-400">{item.time} • Evidence submitted</p>
-          </div>
-          
-          {/* Fixed Badge with shrink-0 and whitespace-nowrap */}
-          <span className={`shrink-0 whitespace-nowrap pill-status pill-status-${item.tone}`}>
-            {item.status}
-          </span>
-        </div>
-      </article>
-    ))}
-  </div>
-</section>
+
 </div>
 
            <div className="border-t border-slate-800/80 bg-slate-950 p-6">
   {/* Header Title with Soft Cyan/Slate Color */}
-  <h2 className="text-xs font-bold tracking-widest text-sky-400 uppercase mb-4">
+  <h2 className="text-xs font-bold tracking-widest text-blue-400 uppercase mb-4">
     Common Reported Issues
   </h2>
 
@@ -300,7 +271,7 @@ export default function HomePage() {
       <Link 
         key={issue.title} 
         href="/patterns" 
-        className="group flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 text-center transition hover:border-sky-500/50 hover:bg-slate-900 hover:shadow-lg hover:shadow-sky-950/30"
+        className="group flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 text-center transition hover:border-blue-500/50 hover:bg-slate-900 hover:shadow-lg hover:shadow-blue-950/30"
       >
         <p className="text-xs font-bold text-slate-100 group-hover:text-white">
           {issue.title}

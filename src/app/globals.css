@@ -187,6 +187,13 @@ main [class*="grid-cols-"] > *, main [class*="flex-"] > * { min-width: 0; }
 
   input,
   select,
+  textarea,
+  button {
+    font: inherit;
+  }
+
+  input,
+  select,
   textarea {
     @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition;
   }
@@ -279,6 +286,9 @@ main [class*="grid-cols-"] > *, main [class*="flex-"] > * { min-width: 0; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 5.5rem;
+  height: 2rem;
+  flex-shrink: 0;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.7rem;

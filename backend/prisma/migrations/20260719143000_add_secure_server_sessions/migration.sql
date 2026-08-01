@@ -1,6 +1,8 @@
--- Add the new lifecycle states without invalidating legacy rows.
+-- PostgreSQL requires newly-added enum values to be committed before they are
+-- referenced by defaults or data changes later in the migration.
 ALTER TYPE "UserStatus" ADD VALUE IF NOT EXISTS 'PENDING_VERIFICATION';
 ALTER TYPE "UserStatus" ADD VALUE IF NOT EXISTS 'DISABLED';
+COMMIT;
 
 ALTER TABLE "User"
   ADD COLUMN "normalizedEmail" TEXT,
